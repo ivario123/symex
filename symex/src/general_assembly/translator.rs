@@ -1,9 +1,7 @@
 //! Describes the translator trait.
 //! A translator that translates between machine code and general assembly instructions.
 
-use regex::Regex;
-
-use super::{instruction::Instruction, project::PCHook, RunConfig};
+use super::{instruction::Instruction, RunConfig};
 
 /// A translator
 pub trait Translatable {

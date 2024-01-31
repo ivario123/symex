@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Debug, fs};
 
 use gimli::{DebugAbbrev, DebugInfo, DebugStr};
-use object::{Architecture,  Object, ObjectSection, ObjectSymbol};
+use object::{Architecture, Object, ObjectSection, ObjectSymbol};
 use tracing::debug;
 
 use crate::{
@@ -13,9 +13,8 @@ use crate::{
 use self::segments::Segments;
 
 use super::{
-    instruction::Instruction,
-    state::GAState,
-    DataHalfWord, DataWord, Endianness, RawDataWord, Result as SuperResult, RunConfig, WordSize,
+    instruction::Instruction, state::GAState, DataHalfWord, DataWord, Endianness, RawDataWord,
+    Result as SuperResult, RunConfig, WordSize,
 };
 
 mod dwarf_helper;
@@ -362,7 +361,7 @@ impl Project {
         }
     }
 
-    fn instruction_from_array_ptr(& self, data: &'static [u8]) -> Result<Instruction> {
+    fn instruction_from_array_ptr(&self, data: &'static [u8]) -> Result<Instruction> {
         return Ok(self.architecture.translate(data).unwrap());
         // match self.architecture {
         //     object::Architecture::Arm => {

@@ -25,9 +25,23 @@ pub enum ArchError {
     /// Thrown when a different module errors and that error is not convertible in to an [`ArchError`]
     ImplementorStringError(&'static str),
     /// Thrown when something goes wrong during instruction parsing.
-    ParsingError(String),
-    /// Thrown when an instruction was not parseable
-    MalformedInstruction
+    ParsingError(ParseError),
+}
+
+#[derive(Debug)]
+pub enum ParseError {
+    /// Input not long enough for an instruction.
+    InsufficientInput,
+    /// 32 bit instruction not long enough.
+    MalfromedInstruction,
+    /// Opcode not matching valid 32 bit instruction.
+    InvalidInstruction,
+    /// This instruction causes unpredictable behaviour.
+    Unpredictable,
+    /// Trying to access an invalid register.
+    InvalidRegister,
+    /// Invalid condition code used.
+    InvalidCondition,
 }
 
 /// A generic architecture

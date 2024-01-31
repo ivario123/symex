@@ -844,7 +844,7 @@ mod test {
             0,
             WordSize::Bit32,
             Endianness::Little,
-            object::Architecture::Arm,
+            crate::arch::arm::armv6::ArmV6EM {},
             HashMap::new(),
             HashMap::new(),
             HashMap::new(),
