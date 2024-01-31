@@ -1,22 +1,20 @@
-use std::{collections::HashMap, fmt::Debug, fs, marker::PhantomData};
+use std::{collections::HashMap, fmt::Debug, fs};
 
-use armv6_m_instruction_parser::parse;
 use gimli::{DebugAbbrev, DebugInfo, DebugStr};
-use object::{Architecture, File, Object, ObjectSection, ObjectSymbol};
+use object::{Architecture,  Object, ObjectSection, ObjectSymbol};
 use tracing::debug;
 
 use crate::{
-    arch::{arm::ArmIsa, Arch},
-    general_assembly::translator::Translatable,
+    arch::{arm::Arm, Arch},
     memory::MemoryError,
     smt::DExpr,
 };
 
-use self::segments::{Segment, Segments};
+use self::segments::Segments;
 
 use super::{
     instruction::Instruction,
-    state::{self, GAState},
+    state::GAState,
     DataHalfWord, DataWord, Endianness, RawDataWord, Result as SuperResult, RunConfig, WordSize,
 };
 
@@ -239,7 +237,7 @@ impl Project {
         let architecture = match architecture {
             Architecture::Arm => {
                 // Get a generic arm arch
-                let ret = ArmIsa::try_from(&obj_file).unwrap();
+                let ret = Arm::try_from(&obj_file).unwrap();
                 ret.add_hooks(cfg);
                 ret
             }

@@ -1,3 +1,11 @@
+//! Defines a generic architecture
+//!
+//! An architecture is in the scope of this crate
+//! something that defines a instruction set that
+//! can be translated in to general_assembly [`Instruction`]s.
+//! Moreover the architecture may define a few
+//! architecture specific hooks
+
 pub mod arm;
 use std::fmt::Debug;
 
@@ -16,15 +24,19 @@ pub enum ArchError {
     MissingSection(&'static str),
     /// Thrown when a different module errors and that error is not convertible in to an [`ArchError`]
     ImplementorStringError(&'static str),
+    /// Thrown when something goes wrong during instruction parsing.
+    ParsingError(String),
     /// Thrown when an instruction was not parseable
     MalformedInstruction
 }
 
 /// A generic architecture
 ///
-///
-/// Denotes that the implementer can be treated as an architecture in this tool.
+/// Denotes that the implementer can be treated as an architecture in this crate.
 pub trait Arch: Debug {
+    /// Converts a slice of bytes to an [`Instruction`]
     fn translate(&self, buff: &'static [u8]) -> Result<Instruction, ArchError>;
+
+    /// Adds the architecture specific hooks to the [`RunConfig`]
     fn add_hooks(&self, cfg: &mut RunConfig);
 }

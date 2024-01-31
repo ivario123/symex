@@ -1,4 +1,11 @@
-//! Defines common interface implementations for the ARM architecture
+//! Defines the supported ARM architectures
+//!
+//! ## Construction
+//!
+//! The [`Arm`] struct is used as a middle hand
+//! for construction of the different ISAs 
+//! supported by this crate and presents 
+//! the ISAs as dyn [`Arch`] types.
 
 use super::{Arch, ArchError};
 use crate::general_assembly::instruction::Instruction;
@@ -6,12 +13,12 @@ use crate::general_assembly::run_config::RunConfig;
 use crate::general_assembly::translator::{Hookable, Translatable};
 use object::{File, Object, ObjectSection};
 
-#[non_exhaustive]
-/// Enumerates all of the supported Arm instruction sets
-pub enum ArmIsa {
-    ArmV6EM,
-    ArmV7EM,
-}
+/// Type level abstraction that serves as a constructor 
+///
+/// This abstraction only servers as a constructor for the 
+/// different ARM instruction sets supported by this crate.
+#[derive(Debug)]
+pub struct Arm {}
 
 /// Type level denotation for the Armv7-EM ISA.
 #[derive(Debug)]
@@ -20,9 +27,18 @@ pub struct ArmV7EM {}
 #[derive(Debug)]
 pub struct ArmV6EM {}
 
+
+#[non_exhaustive]
+#[allow(dead_code)] // This is temporary and will be removed when V7 is supported
+enum ArmIsa {
+    ArmV6EM,
+    ArmV7EM,
+}
+
+
 fn arm_isa<'a, T: ObjectSection<'a>>(section: &T) -> Result<ArmIsa, ArchError> {
     let data = section.data().map_err(|_| ArchError::MalformedSection)?;
-    // Magic extraction,
+    // Magic extraction
     //
     // the index here is from
     // https://github.com/ARM-software/abi-aa/blob/main/addenda32/addenda32.rst
@@ -40,7 +56,7 @@ fn arm_isa<'a, T: ObjectSection<'a>>(section: &T) -> Result<ArmIsa, ArchError> {
     }
 }
 
-impl ArmIsa {
+impl Arm {
     pub fn try_from(file: &File) -> Result<Box<dyn Arch>, ArchError> {
         let f = match file {
             File::Elf32(f) => Ok(f),
@@ -69,13 +85,8 @@ impl Arch for ArmV6EM {
         armv6_m_instruction_parser::instructons::Instruction::add_hooks(cfg)
     }
     fn translate(&self, buff: &[u8]) -> Result<Instruction, ArchError> {
-        // This jumping around is purely due to lifetimes. The lifetime of buff needs to be >=
-        // 'static due to the error type for parse, if it were an enum this would not be a problem.
-        let ret:Result<armv6_m_instruction_parser::instructons::Instruction,_> =armv6_m_instruction_parser::parse(buff);
-        if ret.is_ok() {
-           return Ok(ret.unwrap().translate())
-        }
-        Err( ArchError::MalformedInstruction)
+        let ret = armv6_m_instruction_parser::parse(buff).map_err(|e| ArchError::ParsingError(format!("{:?}",e)))?;
+        Ok(ret.translate())
     }
 }
 
