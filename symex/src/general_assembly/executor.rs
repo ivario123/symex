@@ -272,10 +272,22 @@ impl<'vm> GAExecutor<'vm> {
                 // create paths for all but the first address
                 for addr in &addresses[1..] {
                     if self.current_operation_index
-                        < self.state.current_instruction.as_ref().unwrap().operations.len() - 1
+                        < self
+                            .state
+                            .current_instruction
+                            .as_ref()
+                            .unwrap()
+                            .operations
+                            .len()
+                            - 1
                     {
                         self.state.continue_in_instruction = Some(ContinueInsideInstruction {
-                            instruction: self.state.current_instruction.as_ref().unwrap().to_owned(),
+                            instruction: self
+                                .state
+                                .current_instruction
+                                .as_ref()
+                                .unwrap()
+                                .to_owned(),
                             index: self.current_operation_index,
                             local: local.clone(),
                         })
@@ -503,10 +515,22 @@ impl<'vm> GAExecutor<'vm> {
                 let destination: DExpr = match (true_possible, false_possible) {
                     (true, true) => {
                         if self.current_operation_index
-                            < (self.state.current_instruction.as_ref().unwrap().operations.len() - 1)
+                            < (self
+                                .state
+                                .current_instruction
+                                .as_ref()
+                                .unwrap()
+                                .operations
+                                .len()
+                                - 1)
                         {
                             self.state.continue_in_instruction = Some(ContinueInsideInstruction {
-                                instruction: self.state.current_instruction.as_ref().unwrap().to_owned(),
+                                instruction: self
+                                    .state
+                                    .current_instruction
+                                    .as_ref()
+                                    .unwrap()
+                                    .to_owned(),
                                 index: self.current_operation_index + 1,
                                 local: local.to_owned(),
                             });

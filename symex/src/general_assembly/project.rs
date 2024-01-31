@@ -1,11 +1,16 @@
-use std::{collections::HashMap, fmt::Debug, fs};
+use std::{collections::HashMap, fmt::Debug, fs, marker::PhantomData};
 
 use armv6_m_instruction_parser::parse;
 use gimli::{DebugAbbrev, DebugInfo, DebugStr};
 use object::{Architecture, File, Object, ObjectSection, ObjectSymbol};
 use tracing::debug;
 
-use crate::{general_assembly::translator::Translatable, memory::MemoryError, smt::DExpr};
+use crate::{
+    arch::{arm::ArmIsa, Arch},
+    general_assembly::translator::Translatable,
+    memory::MemoryError,
+    smt::DExpr,
+};
 
 use self::segments::{Segment, Segments};
 
@@ -76,7 +81,6 @@ pub struct Project {
     segments: Segments,
     word_size: WordSize,
     endianness: Endianness,
-    architecture: object::Architecture,
     symtab: HashMap<String, u64>,
     pc_hooks: PCHooks,
     reg_read_hooks: RegisterReadHooks,
@@ -85,6 +89,7 @@ pub struct Project {
     range_memory_read_hooks: RangeMemoryReadHooks,
     single_memory_write_hooks: SingleMemoryWriteHooks,
     range_memory_write_hooks: RangeMemoryWriteHooks,
+    architecture: Box<dyn Arch>,
 }
 
 fn construct_register_read_hooks(hooks: Vec<(String, RegisterReadHook)>) -> RegisterReadHooks {
@@ -146,13 +151,13 @@ fn construct_memory_read_hooks(
 }
 
 impl Project {
-    pub fn manual_project(
+    pub fn manual_project<A: Arch + 'static>(
         program_memory: Vec<u8>,
         start_addr: u64,
         end_addr: u64,
         word_size: WordSize,
         endianness: Endianness,
-        architecture: object::Architecture,
+        architecture: A,
         symtab: HashMap<String, u64>,
         pc_hooks: PCHooks,
         reg_read_hooks: RegisterReadHooks,
@@ -161,12 +166,12 @@ impl Project {
         range_memory_read_hooks: RangeMemoryReadHooks,
         single_memory_write_hooks: SingleMemoryWriteHooks,
         range_memory_write_hooks: RangeMemoryWriteHooks,
-    ) -> Project {
-        Project {
+    ) -> Self {
+        Self {
             segments: Segments::from_single_segment(program_memory, start_addr, end_addr),
             word_size,
             endianness,
-            architecture,
+            architecture: Box::new(architecture),
             symtab,
             pc_hooks,
             reg_read_hooks,
@@ -231,12 +236,16 @@ impl Project {
         let debug_str = obj_file.section_by_name(".debug_str").unwrap();
         let debug_str = DebugStr::new(debug_str.data().unwrap(), gimli_endian);
 
-        match architecture {
+        let architecture = match architecture {
             Architecture::Arm => {
-                armv6_m_instruction_parser::instructons::Instruction::add_hooks(cfg)
+                // Get a generic arm arch
+                let ret = ArmIsa::try_from(&obj_file).unwrap();
+                ret.add_hooks(cfg);
+                ret
             }
             _ => todo!(),
-        }
+        };
+
         let pc_hooks = cfg.pc_hooks.clone();
 
         let pc_hooks =
@@ -344,27 +353,28 @@ impl Project {
         self.symtab.get(symbol).copied()
     }
 
-    /// Get the instruction att a address
+    /// Get the instruction at an address
     pub fn get_instruction(&self, address: u64) -> Result<Instruction> {
         debug!("Reading instruction from address: {:#010X}", address);
         match self.get_raw_word(address)? {
-            RawDataWord::Word64(d) => self.instruction_from_array_ptr(&d),
-            RawDataWord::Word32(d) => self.instruction_from_array_ptr(&d),
-            RawDataWord::Word16(d) => self.instruction_from_array_ptr(&d),
+            RawDataWord::Word64(d) => self.instruction_from_array_ptr(Box::leak(Box::new(d))),
+            RawDataWord::Word32(d) => self.instruction_from_array_ptr(Box::leak(Box::new(d))),
+            RawDataWord::Word16(d) => self.instruction_from_array_ptr(Box::leak(Box::new(d))),
             RawDataWord::Word8(_) => todo!(),
         }
     }
 
-    fn instruction_from_array_ptr(&self, data: &[u8]) -> Result<Instruction> {
-        match self.architecture {
-            object::Architecture::Arm => {
-                // probobly right add more cheks later or custom enum etc.
-                let arm_instruction = parse(data).unwrap();
-                debug!("instruction read: {:?}", arm_instruction);
-                Ok(arm_instruction.translate())
-            }
-            _ => todo!(),
-        }
+    fn instruction_from_array_ptr(& self, data: &'static [u8]) -> Result<Instruction> {
+        return Ok(self.architecture.translate(data).unwrap());
+        // match self.architecture {
+        //     object::Architecture::Arm => {
+        //         // probobly right add more cheks later or custom enum etc.
+        //         // let arm_instruction = parse(data).unwrap();
+        //         // debug!("instruction read: {:?}", arm_instruction);
+        //         // Ok(arm_instruction.translate())
+        //     }
+        //     _ => todo!(),
+        // }
     }
 
     /// Get a byte of data from program memory.

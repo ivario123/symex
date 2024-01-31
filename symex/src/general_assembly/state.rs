@@ -344,7 +344,7 @@ impl GAState {
         match self.project.get_pc_hook(pc) {
             Some(hook) => Ok(HookOrInstruction::PcHook(hook)),
             None => Ok(HookOrInstruction::Instruction(
-                self.project.get_instruction(pc)?,
+                self.project.get_instruction(pc)?.clone(),
             )),
         }
     }

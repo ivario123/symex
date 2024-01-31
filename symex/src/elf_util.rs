@@ -1,6 +1,6 @@
 //! Utility structures mostly related to passing information to runner and display to user.
-use crate::general_assembly::state::GAState;
 use crate::general_assembly::GAError;
+use crate::{arch::Arch, general_assembly::state::GAState};
 use colored::*;
 use core::fmt::{self, Write};
 use indenter::indented;

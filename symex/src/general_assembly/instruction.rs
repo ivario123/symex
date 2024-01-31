@@ -8,6 +8,7 @@ pub enum CycleCount {
     /// Cycle count is a precalculated value
     Value(usize),
 
+    // This might need to be reworked
     /// Cycle count depends on execution state
     Function(fn(state: &GAState) -> usize),
 }

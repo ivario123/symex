@@ -9,7 +9,9 @@ use super::{instruction::Instruction, project::PCHook, RunConfig};
 pub trait Translatable {
     /// Translate the given instruction into a GA instruction.
     fn translate(&self) -> Instruction;
+}
 
-    /// Add target specific or dependant pc hooks.
+/// Something that has hooks
+pub trait Hookable {
     fn add_hooks(cfg: &mut RunConfig);
 }

@@ -1,3 +1,4 @@
+pub mod arch;
 pub mod elf_util;
 pub mod general_assembly;
 pub mod memory;
