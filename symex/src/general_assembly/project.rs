@@ -5,7 +5,7 @@ use object::{Architecture, Object, ObjectSection, ObjectSymbol};
 use tracing::debug;
 
 use crate::{
-    arch::{arm::Arm, Arch},
+    arch::{arch_from_family, arm::Arm, Arch},
     memory::MemoryError,
     smt::DExpr,
 };
@@ -235,13 +235,12 @@ impl Project {
 
         let architecture = match architecture {
             Architecture::Arm => {
-                // Get a generic arm arch
-                let ret = Arm::try_from(&obj_file).unwrap();
-                ret.add_hooks(cfg);
-                ret
+                // Get a generic arm arch using dependecy injection
+                arch_from_family::<Arm>(&obj_file)
             }
             _ => todo!(),
-        };
+        }.unwrap();
+        architecture.add_hooks(cfg);
 
         let pc_hooks = cfg.pc_hooks.clone();
 

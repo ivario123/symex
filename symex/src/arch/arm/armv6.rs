@@ -8,11 +8,12 @@ use crate::{
 };
 use armv6_m_instruction_parser::Error;
 
-/// Type level denotation for the Armv7-EM ISA.
+/// Type level denotation for the
+/// [Armv6-M](https://developer.arm.com/documentation/ddi0419/latest/) ISA.
 #[derive(Debug)]
-pub struct ArmV6EM {}
+pub struct ArmV6M {}
 
-impl Arch for ArmV6EM {
+impl Arch for ArmV6M {
     fn add_hooks(&self, cfg: &mut RunConfig) {
         armv6_m_instruction_parser::instructons::Instruction::add_hooks(cfg)
     }

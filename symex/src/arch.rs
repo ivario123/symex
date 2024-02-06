@@ -7,6 +7,7 @@
 //! architecture specific hooks
 
 pub mod arm;
+use object::File;
 use std::fmt::Debug;
 
 use crate::general_assembly::{instruction::Instruction, RunConfig};
@@ -53,4 +54,32 @@ pub trait Arch: Debug {
 
     /// Adds the architecture specific hooks to the [`RunConfig`]
     fn add_hooks(&self, cfg: &mut RunConfig);
+}
+
+/// A generic family of [`Architectures`](Arch).
+///
+/// This trait denotes that the implementer can discern between the different variants 
+/// of architectures in the family using only the [`File`].
+pub trait Family: Debug {
+    /// Tries to convert a given binary to an architecture in the family.
+    fn try_from(file: &File) -> Result<Box<dyn Arch>, ArchError>;
+}
+
+
+// This allows us to break the code in to modules more easily
+//
+// TODO! Break all of the architectures in to separate crates
+//
+// TODO! Break out GA in to a separate crate
+//
+// TODO! Break the VM in to a generic VM
+//
+// TODO! Automagically detect if the target is LLVM or GA
+
+
+/// Tries to get the target [`Architecture`](Arch) for the binary [`File`].
+///
+/// Uses dependecy injection to allow usage of generic [`Family`]
+pub fn arch_from_family<F: Family>(file: &File) -> Result<Box<dyn Arch>, ArchError> {
+    F::try_from(file)
 }

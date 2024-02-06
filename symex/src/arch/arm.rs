@@ -9,8 +9,8 @@
 pub mod armv6;
 pub mod armv7;
 
-use super::{Arch, ArchError};
-use armv6::ArmV6EM;
+use super::{Arch, ArchError, Family};
+use armv6::ArmV6M;
 use armv7::ArmV7EM;
 
 use object::{File, Object, ObjectSection};
@@ -22,13 +22,13 @@ use object::{File, Object, ObjectSection};
 #[derive(Debug)]
 pub struct Arm {}
 
-impl Arm {
+impl Family for Arm {
     /// Tries to determine what ARM ISA the [`File`] is compiled for.
     ///
     /// Expects an elf file with corresponding
     /// .ARM.attributes section which provides the needed information
     /// about the compilation target.
-    pub fn try_from(file: &File) -> Result<Box<dyn Arch>, ArchError> {
+    fn try_from(file: &File) -> Result<Box<dyn Arch>, ArchError> {
         let f = match file {
             File::Elf32(f) => Ok(f),
             _ => Err(ArchError::IncorrectFileType),
@@ -39,7 +39,7 @@ impl Arm {
         }?;
         let isa = arm_isa(&section)?;
         return match isa {
-            ArmIsa::ArmV6EM => Ok(Box::new(ArmV6EM {})),
+            ArmIsa::ArmV6M => Ok(Box::new(ArmV6M {})),
             ArmIsa::ArmV7EM => Ok(Box::new(ArmV7EM {})),
         };
     }
@@ -49,7 +49,7 @@ impl Arm {
 // TODO: Remove this
 #[allow(dead_code)] // This is temporary and will be removed when V7 is supported
 enum ArmIsa {
-    ArmV6EM,
+    ArmV6M,
     ArmV7EM,
 }
 
@@ -61,13 +61,15 @@ fn arm_isa<'a, T: ObjectSection<'a>>(section: &T) -> Result<ArmIsa, ArchError> {
     // https://github.com/ARM-software/abi-aa/blob/main/addenda32/addenda32.rst
     //
     // so are the f_cpu_arch values
+    //
+    // This offset might be a bit hacky
     let f_cpu_arch = match data.get(6 * 4 - 1) {
         Some(el) => Ok(el),
         None => Err(ArchError::MalformedSection),
     }?;
 
     match f_cpu_arch {
-        12 => Ok(ArmIsa::ArmV6EM),
+        12 => Ok(ArmIsa::ArmV6M),
         // 13 => Ok(ArmIsa::ArmV7EM),
         _ => Err(ArchError::UnsuportedArchitechture),
     }
