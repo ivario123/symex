@@ -40,7 +40,7 @@ impl Family for Arm {
         let isa = arm_isa(&section)?;
         return match isa {
             ArmIsa::ArmV6M => Ok(Box::new(ArmV6M {})),
-            ArmIsa::ArmV7EM => Ok(Box::new(ArmV7EM {})),
+            ArmIsa::ArmV7EM => Ok(Box::new(ArmV7EM::default())),
         };
     }
 }
@@ -70,7 +70,8 @@ fn arm_isa<'a, T: ObjectSection<'a>>(section: &T) -> Result<ArmIsa, ArchError> {
 
     match f_cpu_arch {
         12 => Ok(ArmIsa::ArmV6M),
-        // 13 => Ok(ArmIsa::ArmV7EM),
+        13=> Ok(ArmIsa::ArmV7EM),
+
         _ => Err(ArchError::UnsuportedArchitechture),
     }
 }

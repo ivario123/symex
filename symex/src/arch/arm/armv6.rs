@@ -7,6 +7,7 @@ use crate::{
     },
 };
 use armv6_m_instruction_parser::Error;
+use dissarmv7::prelude::*;
 
 /// Type level denotation for the
 /// [Armv6-M](https://developer.arm.com/documentation/ddi0419/latest/) ISA.
@@ -18,7 +19,13 @@ impl Arch for ArmV6M {
         armv6_m_instruction_parser::instructons::Instruction::add_hooks(cfg)
     }
     fn translate(&self, buff: &[u8]) -> Result<Instruction, ArchError> {
+        let b2 = buff.clone();
         let ret = armv6_m_instruction_parser::parse(buff).map_err(|e| e.into())?;
+        let mut buff: dissarmv7::buffer::PeekableBuffer<u8, _> =
+            b2.iter().cloned().to_owned().into();
+
+        let instr = dissarmv7::ASM::parse_exact::<_,1>(&mut buff);
+        println!("{ret:?}, {instr:?}");
         Ok(ret.translate())
     }
 }

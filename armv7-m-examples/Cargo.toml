@@ -1,0 +1,46 @@
+[package]
+authors = ["Ivar Jönsson <ivajns-9@student.ltu.se>"]
+edition = "2021"
+name = "armv7-m-examples"
+version = "0.0.1"
+
+[dependencies]
+cortex-m = { version = "0.7.6", features = ["inline-asm"] }
+cortex-m-rtic = "1.1.3"
+rtt-target = { version = "0.3.0", features = ["cortex-m"] }
+panic-halt = "0.2.0"
+nrf52840-hal = { version = "0.16.0", features = ["rt"] }
+cortex-m-rt = "0.7"
+embedded-hal = { version = "0.2" }
+
+defmt = "0.3"
+defmt-rtt = "0.4"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+
+rtic = { version = "2.0", features = ["thumbv7-backend"] }
+rtic-monotonics = { version = "1.3.0"}
+rtic-monotonic = "1.0.0"
+
+
+symex_lib = { path = "../crates/symex_lib", version = "1.0" }
+valid_derive = { path = "../crates/valid_derive", version = "1.0" }
+# cargo build/run
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true
+incremental = false
+opt-level = 0
+overflow-checks = false
+lto = 'off'
+
+# cargo build/run --release
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = true
+incremental = false
+opt-level = 0
+overflow-checks = false
+lto = 'off'
+

@@ -18,7 +18,8 @@ colored = "2.0"
 rand = "0.8.5"
 object = "0.32.1"
 
-armv6-m-instruction-parser = "0.3.0-rc1"
+dissarmv7 = {path="../../dissarmv7"}
+armv6-m-instruction-parser = {path="../../armv6-m-instruction-parser"}#"0.3.0-rc1"
 yaxpeax-arm = "0.2.4"
 yaxpeax-arch = "0.2.7"
 gimli = "0.28.0"

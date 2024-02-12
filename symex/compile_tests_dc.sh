@@ -8,7 +8,7 @@ for file in $(find $SCRIPT_DIR/tests -name '*.c'); do
     clang-17 -c -emit-llvm $file -o ${file%.*}.bc && clang-17 -S -emit-llvm $file -o ${file%.*}.ll
 done
 
-opts="-C panic=abort -C link-dead-code=yes" # -C debuginfo=2"
+opts="-C panic=abort -C link-dead-code=yes --target thumbv7em-none-eabi " # -C debuginfo=2"
 
 # Compile all .rs files used in tests.
 for file in $(find $SCRIPT_DIR/tests/samples -name '*.rs'); do
