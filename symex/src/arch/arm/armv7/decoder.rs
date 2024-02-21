@@ -332,10 +332,34 @@ impl Into<Vec<Operation>> for Thumb {
             }
             Thumb::Adr(adr) => {
                 consume!((rd,imm,add) from adr);
-                let (rd,imm) = (rd.local_into(),imm.local_into());
-                vec![]
+                let (rd, imm) = (rd.local_into(), imm.local_into());
 
-            },
+                let mut ret = vec![
+                    Operation::Add {
+                        destination: GAOperand::Local("addr".to_owned()),
+                        operand1: GAOperand::Register("PC".to_owned()),
+                        operand2: GAOperand::Immidiate(DataWord::Word32(2)),
+                    },
+                    Operation::And {
+                        destination: GAOperand::Local("addr".to_owned()),
+                        operand1: GAOperand::Local("addr".to_owned()),
+                        operand2: GAOperand::Immidiate(DataWord::Word32(!0b11)),
+                    },
+                ];
+                ret.push(match add {
+                    true => Operation::Add {
+                        destination: rd,
+                        operand1: GAOperand::Local("addr".to_owned()),
+                        operand2: imm,
+                    },
+                    false => Operation::Sub {
+                        destination: rd,
+                        operand1: GAOperand::Local("addr".to_owned()),
+                        operand2: imm,
+                    },
+                });
+                ret
+            }
             Thumb::AndImmediate(_) => todo!(),
             Thumb::AndRegister(_) => todo!(),
             Thumb::AsrImmediate(_) => todo!(),
