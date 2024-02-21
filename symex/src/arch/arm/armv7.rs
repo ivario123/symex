@@ -26,7 +26,7 @@ impl Arch for ArmV7EM {
     fn translate(&self, buff: &'static [u8]) -> Result<Instruction, ArchError> {
         let mut buff: dissarmv7::buffer::PeekableBuffer<u8, _> =
             buff.iter().cloned().to_owned().into();
-        let instr = dissarmv7::ASM::parse_exact::<_,1>(&mut buff);
+        let instr = dissarmv7::ASM::parse_exact::<_, 1>(&mut buff);
         println!("{:?}", instr);
         return Ok(Instruction {
             instruction_size: 16,
