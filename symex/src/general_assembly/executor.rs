@@ -6,7 +6,7 @@ use tracing::{debug, trace};
 
 use crate::{
     elf_util::{ExpressionType, Variable},
-    general_assembly::{path_selection::Path, state::HookOrInstruction},
+    general_assembly::{instruction::Shift, path_selection::Path, state::HookOrInstruction},
     smt::{DExpr, SolverError},
 };
 
@@ -15,7 +15,7 @@ use super::{
     project::Project,
     state::{ContinueInsideInstruction, GAState},
     vm::VM,
-    DataWord, Result,
+    DataWord, GAError, Result,
 };
 
 pub struct GAExecutor<'vm> {
@@ -130,6 +130,11 @@ impl<'vm> GAExecutor<'vm> {
         }
     }
 
+    /// Creates smt expression from a dataword.
+    fn get_dexpr_from_bool(&mut self, data: bool) -> DExpr {
+        self.state.ctx.from_bool(data)
+    }
+
     /// Retrieves a smt expression representing value stored at `address` in memory.
     fn get_memory(&mut self, address: u64, bits: u32) -> Result<DExpr> {
         trace!("Getting memmory addr: {:?}", address);
@@ -212,6 +217,7 @@ impl<'vm> GAExecutor<'vm> {
                 let address = self.resolve_address(address, &local)?;
                 self.get_memory(address, *width)
             }
+            Operand::Flag(f) => Ok(self.state.get_flag(f)),
         }
     }
 
@@ -246,6 +252,13 @@ impl<'vm> GAExecutor<'vm> {
             } => todo!(),
             Operand::Local(k) => {
                 local.insert(k.to_owned(), value);
+            }
+            Operand::Flag(f) => {
+                let intermediate = self.get_dexpr_from_dataword(DataWord::Word8(0b1));
+                self.state.set_flag(
+                    f.clone(),
+                    value.and(&intermediate),
+                );
             }
         }
         Ok(())
@@ -442,6 +455,23 @@ impl<'vm> GAExecutor<'vm> {
                 let result = op.not();
                 self.set_operand_value(destination, result, local)?;
             }
+            Operation::Shift {
+                destination,
+                operand,
+                shift_n,
+                shift_t,
+            } => {
+                let value = self.get_operand_value(operand, &local)?;
+                let shift_amount = self.get_operand_value(shift_n, &local)?;
+                let result = match shift_t {
+                    Shift::Lsl => value.sll(&shift_amount),
+                    Shift::Lsr => value.srl(&shift_amount),
+                    Shift::Asr => value.sra(&shift_amount),
+                    Shift::Rrx => todo!("Add in rotations"),
+                    Shift::Ror => todo!("Add in rotations"),
+                };
+                self.set_operand_value(destination, result, local)?;
+            }
             Operation::Sl {
                 destination,
                 operand,
@@ -577,7 +607,7 @@ impl<'vm> GAExecutor<'vm> {
                 let result = match (sub, carry) {
                     (true, true) => {
                         // I do not now if this part is used in any ISA but it is here for completeness.
-                        let carry_in = self.state.get_flag("C".to_owned()).unwrap();
+                        let carry_in = self.state.get_flag(&"C".to_owned());
                         let op2 = op2.not();
 
                         // Check for carry on twos complement of op2
@@ -598,7 +628,7 @@ impl<'vm> GAExecutor<'vm> {
                             .carry_out
                     }
                     (false, true) => {
-                        let carry_in = self.state.get_flag("C".to_owned()).unwrap();
+                        let carry_in = self.state.get_flag(&"C".to_owned());
                         add_with_carry(&op1, &op2, &carry_in, self.project.get_word_size())
                             .carry_out
                     }
@@ -620,7 +650,7 @@ impl<'vm> GAExecutor<'vm> {
                 let result = match (sub, carry) {
                     (true, true) => {
                         // slightly wrong at op2 = 0
-                        let carry_in = self.state.get_flag("C".to_owned()).unwrap();
+                        let carry_in = self.state.get_flag(&"C".to_owned());
                         let op2 = op2.not().add(&one);
                         add_with_carry(&op1, &op2, &carry_in, self.project.get_word_size()).overflow
                     }
@@ -629,7 +659,7 @@ impl<'vm> GAExecutor<'vm> {
                             .overflow
                     }
                     (false, true) => {
-                        let carry_in = self.state.get_flag("C".to_owned()).unwrap();
+                        let carry_in = self.state.get_flag(&"C".to_owned());
                         add_with_carry(&op1, &op2, &carry_in, self.project.get_word_size()).overflow
                     }
                     (false, false) => op1.saddo(&op2),
@@ -672,8 +702,7 @@ impl<'vm> GAExecutor<'vm> {
                 let op2 = self.get_operand_value(operand2, local)?;
                 let carry = self
                     .state
-                    .get_flag("C".to_owned())
-                    .unwrap()
+                    .get_flag(&"C".to_owned())
                     .zero_ext(self.project.get_word_size());
                 let result =
                     add_with_carry(&op1, &op2, &carry, self.project.get_word_size()).result;
@@ -1253,8 +1282,7 @@ mod test {
 
         let v_flag = executor
             .state
-            .get_flag("V".to_owned())
-            .unwrap()
+            .get_flag(&"V".to_owned())
             .get_constant_bool()
             .unwrap();
         assert!(!v_flag);
@@ -1270,8 +1298,7 @@ mod test {
 
         let v_flag = executor
             .state
-            .get_flag("V".to_owned())
-            .unwrap()
+            .get_flag(&"V".to_owned())
             .get_constant_bool()
             .unwrap();
         assert!(v_flag);
@@ -1287,8 +1314,7 @@ mod test {
 
         let v_flag = executor
             .state
-            .get_flag("V".to_owned())
-            .unwrap()
+            .get_flag(&"V".to_owned())
             .get_constant_bool()
             .unwrap();
         assert!(v_flag);

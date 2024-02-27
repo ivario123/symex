@@ -284,54 +284,64 @@ impl GAState {
     }
 
     /// Get the value of a flag.
-    pub fn get_flag(&mut self, flag: String) -> Option<DExpr> {
-        match self.flags.get(&flag) {
-            Some(v) => Some(v.to_owned()),
-            None => todo!(),
+    pub fn get_flag(&mut self, flag: &String) -> DExpr {
+        match self.flags.get(flag) {
+            Some(v) => v.to_owned(),
+            None => {
+                // If flag do not exist yet create it with unconstrained value.
+                let value = self.ctx.unconstrained(self.project.get_word_size(), &flag);
+                self.marked_symbolic.push(Variable {
+                    name: Some(flag.to_owned()),
+                    value: value.clone(),
+                    ty: ExpressionType::Integer(self.project.get_word_size() as usize),
+                });
+                self.set_flag(flag.to_owned(), value.to_owned());
+                value
+            }
         }
     }
 
     /// Get the expression for a condition based on the current flag values.
     pub fn get_expr(&mut self, condition: &Condition) -> Result<DExpr> {
         Ok(match condition {
-            Condition::EQ => self.get_flag("Z".to_owned()).unwrap(),
-            Condition::NE => self.get_flag("Z".to_owned()).unwrap().not(),
-            Condition::CS => self.get_flag("C".to_owned()).unwrap(),
-            Condition::CC => self.get_flag("C".to_owned()).unwrap().not(),
-            Condition::MI => self.get_flag("N".to_owned()).unwrap(),
-            Condition::PL => self.get_flag("N".to_owned()).unwrap().not(),
-            Condition::VS => self.get_flag("V".to_owned()).unwrap(),
-            Condition::VC => self.get_flag("V".to_owned()).unwrap().not(),
+            Condition::EQ => self.get_flag(&"Z".to_owned()),
+            Condition::NE => self.get_flag(&"Z".to_owned()).not(),
+            Condition::CS => self.get_flag(&"C".to_owned()),
+            Condition::CC => self.get_flag(&"C".to_owned()).not(),
+            Condition::MI => self.get_flag(&"N".to_owned()),
+            Condition::PL => self.get_flag(&"N".to_owned()).not(),
+            Condition::VS => self.get_flag(&"V".to_owned()),
+            Condition::VC => self.get_flag(&"V".to_owned()).not(),
             Condition::HI => {
-                let c = self.get_flag("C".to_owned()).unwrap();
-                let z = self.get_flag("Z".to_owned()).unwrap().not();
+                let c = self.get_flag(&"C".to_owned());
+                let z = self.get_flag(&"Z".to_owned()).not();
                 c.and(&z)
             }
             Condition::LS => {
-                let c = self.get_flag("C".to_owned()).unwrap().not();
-                let z = self.get_flag("Z".to_owned()).unwrap();
+                let c = self.get_flag(&"C".to_owned()).not();
+                let z = self.get_flag(&"Z".to_owned());
                 c.or(&z)
             }
             Condition::GE => {
-                let n = self.get_flag("N".to_owned()).unwrap();
-                let v = self.get_flag("V".to_owned()).unwrap();
+                let n = self.get_flag(&"N".to_owned());
+                let v = self.get_flag(&"V".to_owned());
                 n.xor(&v).not()
             }
             Condition::LT => {
-                let n = self.get_flag("N".to_owned()).unwrap();
-                let v = self.get_flag("V".to_owned()).unwrap();
+                let n = self.get_flag(&"N".to_owned());
+                let v = self.get_flag(&"V".to_owned());
                 n._ne(&v)
             }
             Condition::GT => {
-                let z = self.get_flag("Z".to_owned()).unwrap();
-                let n = self.get_flag("N".to_owned()).unwrap();
-                let v = self.get_flag("V".to_owned()).unwrap();
+                let z = self.get_flag(&"Z".to_owned());
+                let n = self.get_flag(&"N".to_owned());
+                let v = self.get_flag(&"V".to_owned());
                 z.not().and(&n._eq(&v))
             }
             Condition::LE => {
-                let z = self.get_flag("Z".to_owned()).unwrap();
-                let n = self.get_flag("N".to_owned()).unwrap();
-                let v = self.get_flag("V".to_owned()).unwrap();
+                let z = self.get_flag(&"Z".to_owned());
+                let n = self.get_flag(&"N".to_owned());
+                let v = self.get_flag(&"V".to_owned());
                 z.and(&n._ne(&v))
             }
             Condition::None => self.ctx.from_bool(true),

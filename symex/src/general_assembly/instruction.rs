@@ -29,6 +29,20 @@ pub struct Instruction {
     pub max_cycle: CycleCount,
 }
 
+#[derive(Debug, Clone)]
+pub enum Shift {
+    /// Logical left shift
+    Lsl,
+    /// Logical right sift
+    Lsr,
+    /// Arithmetic right shift    
+    Asr,
+    /// Rotate right with extend
+    Rrx,
+    /// Rotate right
+    Ror,
+}
+
 /// Represents a single operation
 #[derive(Debug, Clone)]
 pub enum Operation {
@@ -103,6 +117,14 @@ pub enum Operation {
     Not {
         destination: Operand,
         operand: Operand,
+    },
+
+    /// General rotation or shift
+    Shift {
+        destination: Operand,
+        operand: Operand,
+        shift_n: Operand,
+        shift_t: Shift,
     },
 
     /// Shift left
@@ -277,4 +299,7 @@ pub enum Operand {
 
     /// Represent the value that is local to the instruction.
     Local(String),
+
+    /// Represents a flag in the core.
+    Flag(String),
 }

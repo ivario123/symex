@@ -2,11 +2,12 @@ use std::sync::mpsc::channel;
 
 use crate::general_assembly::{
     instruction::Instruction as GAInstruction,
+    instruction::Shift as GAShift,
     instruction::{self, Condition as GACondition, Operand as GAOperand, Operation},
     translator::Translatable,
     DataWord,
 };
-use dissarmv7::prelude::Thumb;
+use dissarmv7::prelude::Shift;
 use dissarmv7::prelude::{Condition, Register, RegisterList, Thumb};
 use paste::paste;
 impl Into<GAOperand> for dissarmv7::prelude::Register {
@@ -56,6 +57,17 @@ impl Into<Option<GAOperand>> for Option<dissarmv7::prelude::Register> {
         }))
     }
 }
+impl Into<GAShift> for Shift {
+    fn local_into(self) -> GAShift {
+        match self {
+            Self::Lsl => GAShift::Lsl,
+            Self::Lsr => GAShift::Lsr,
+            Self::Asr => GAShift::Asr,
+            Self::Rrx => GAShift::Rrx,
+            Self::Ror => GAShift::Ror,
+        }
+    }
+}
 
 macro_rules! consume {
     (($($id:ident),*) from $name:ident) => {
@@ -82,7 +94,7 @@ macro_rules! backup {
                 )*
                 let ret = vec![
                     $(
-                        Operation::Move { destination: [<backup_ $id>], source: $id }
+                        Operation::Move { destination: [<backup_ $id>].clone(), source: $id.clone() }
                     ),*
                 ];
             );
@@ -98,6 +110,37 @@ impl Into<GAOperand> for u32 {
         GAOperand::Immidiate(DataWord::Word32(self))
     }
 }
+const fn mask<const START: usize, const END: usize>() -> u32 {
+    let mask = ((1 << (END - START + 1) as u32) as u32) - 1 as u32;
+    mask
+}
+macro_rules! mask {
+    ($($id:ident : $start:literal -> $end:literal),*) => {
+        {
+            let mut ret = vec![]
+
+            paste!(
+                $(
+                    let [<shifted_ $id>] = GAOperand::Local(format!("shifted_{}",stringify!($id)));
+                )*
+                ret.extend([
+                    $(
+                        Operation::Shift {
+                            destination: [<shifted_ $id>],
+                            operand: $id,
+                            shift_n: $start.local_into(),
+                            shift_t: Shift::Lsl,
+                        }
+                    ),*
+                ]);
+            );
+            paste!(
+                (ret,$([<backup_ $id>]),*)
+            )
+        }
+
+    };
+}
 
 impl Into<Vec<Operation>> for Thumb {
     fn local_into(self) -> Vec<Operation> {
@@ -106,22 +149,22 @@ impl Into<Vec<Operation>> for Thumb {
                 // Ensure that all fields are used
                 consume!((s,rd,rn,imm) from adc);
                 let (rd, rn, imm) = (rd.local_into(), rn.local_into(), imm.local_into());
-                let rd = rd.unwrap_or(rn);
+                let rd = rd.unwrap_or(rn.clone());
                 let (mut ret, backup_rn) = backup!(rn);
                 ret.extend([Operation::Adc {
-                    destination: rd,
-                    operand1: imm,
-                    operand2: rn,
+                    destination: rd.clone(),
+                    operand1: imm.clone(),
+                    operand2: rn.clone(),
                 }]);
                 if let Some(true) = s {
                     ret.extend([
                         Operation::Add {
-                            destination: rd,
-                            operand1: rn,
-                            operand2: imm,
+                            destination: rd.clone(),
+                            operand1: rn.clone(),
+                            operand2: imm.clone(),
                         },
-                        Operation::SetNFlag(rd),
-                        Operation::SetZFlag(rd),
+                        Operation::SetNFlag(rd.clone()),
+                        Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
                             operand1: backup_rn.clone(),
                             operand2: imm.clone(),
@@ -141,22 +184,22 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::AdcRegister(adc) => {
                 consume!((s,rd,rn,rm,shift) from adc);
                 let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
-                let rd = rd.unwrap_or(rn);
+                let rd = rd.unwrap_or(rn.clone());
                 let (mut ret, local_rn, local_rm) = backup!(rn, rm);
                 ret.extend([Operation::Adc {
-                    destination: rd,
-                    operand1: rm,
-                    operand2: rn,
+                    destination: rd.clone(),
+                    operand1: rm.clone(),
+                    operand2: rn.clone(),
                 }]);
                 if let Some(true) = s {
                     ret.extend([
                         Operation::Add {
-                            destination: rd,
-                            operand1: rn,
-                            operand2: rm,
+                            destination: rd.clone(),
+                            operand1: rn.clone(),
+                            operand2: rm.clone(),
                         },
-                        Operation::SetNFlag(rd),
-                        Operation::SetZFlag(rd),
+                        Operation::SetNFlag(rd.clone()),
+                        Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
                             operand1: local_rn.clone(),
                             operand2: local_rm.clone(),
@@ -183,19 +226,19 @@ impl Into<Vec<Operation>> for Thumb {
                 let (mut ret, local_rn) = backup!(rn);
 
                 ret.push(Operation::Add {
-                    destination: rd,
-                    operand1: rn,
-                    operand2: imm,
+                    destination: rd.clone(),
+                    operand1: rn.clone(),
+                    operand2: imm.clone(),
                 });
                 if let Some(true) = s {
                     ret.extend([
                         Operation::Add {
-                            destination: rd,
-                            operand1: rn,
-                            operand2: imm,
+                            destination: rd.clone(),
+                            operand1: rn.clone(),
+                            operand2: imm.clone(),
                         },
-                        Operation::SetNFlag(rd),
-                        Operation::SetZFlag(rd),
+                        Operation::SetNFlag(rd.clone()),
+                        Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
                             operand1: local_rn.clone(),
                             operand2: imm.clone(),
@@ -215,22 +258,22 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::AddRegister(add) => {
                 consume!((s,rd,rn,rm,shift) from add);
                 let (rd, rn, rm) = (rd.local_into(), rn.local_into(), rm.local_into());
-                let rd = rd.unwrap_or(rn);
+                let rd = rd.unwrap_or(rn.clone());
                 let (mut ret, local_rn, local_rm) = backup!(rn, rm);
                 ret.extend([Operation::Adc {
-                    destination: rd,
-                    operand1: rm,
-                    operand2: rn,
+                    destination: rd.clone(),
+                    operand1: rm.clone(),
+                    operand2: rn.clone(),
                 }]);
                 if let Some(true) = s {
                     ret.extend([
                         Operation::Add {
-                            destination: rd,
-                            operand1: rn,
-                            operand2: rm,
+                            destination: rd.clone(),
+                            operand1: rn.clone(),
+                            operand2: rm.clone(),
                         },
-                        Operation::SetNFlag(rd),
-                        Operation::SetZFlag(rd),
+                        Operation::SetNFlag(rd.clone()),
+                        Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
                             operand1: local_rn.clone(),
                             operand2: local_rm.clone(),
@@ -257,19 +300,19 @@ impl Into<Vec<Operation>> for Thumb {
                 let (mut ret, local_rn) = backup!(rn);
 
                 ret.push(Operation::Add {
-                    destination: rd,
-                    operand1: rn,
-                    operand2: imm,
+                    destination: rd.clone(),
+                    operand1: rn.clone(),
+                    operand2: imm.clone(),
                 });
                 if let Some(true) = s {
                     ret.extend([
                         Operation::Add {
-                            destination: rd,
-                            operand1: rn,
-                            operand2: imm,
+                            destination: rd.clone(),
+                            operand1: rn.clone(),
+                            operand2: imm.clone(),
                         },
-                        Operation::SetNFlag(rd),
-                        Operation::SetZFlag(rd),
+                        Operation::SetNFlag(rd.clone()),
+                        Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
                             operand1: local_rn.clone(),
                             operand2: imm.clone(),
@@ -301,19 +344,19 @@ impl Into<Vec<Operation>> for Thumb {
                 );
                 let (mut ret, local_rn, local_rm) = backup!(rn, rm);
                 ret.extend([Operation::Adc {
-                    destination: rd,
-                    operand1: rm,
-                    operand2: rn,
+                    destination: rd.clone(),
+                    operand1: rm.clone(),
+                    operand2: rn.clone(),
                 }]);
                 if let Some(true) = s {
                     ret.extend([
                         Operation::Add {
-                            destination: rd,
-                            operand1: rn,
-                            operand2: rm,
+                            destination: rd.clone(),
+                            operand1: rn.clone(),
+                            operand2: rm.clone(),
                         },
-                        Operation::SetNFlag(rd),
-                        Operation::SetZFlag(rd),
+                        Operation::SetNFlag(rd.clone()),
+                        Operation::SetZFlag(rd.clone()),
                         Operation::SetCFlag {
                             operand1: local_rn.clone(),
                             operand2: local_rm.clone(),
@@ -360,9 +403,47 @@ impl Into<Vec<Operation>> for Thumb {
                 });
                 ret
             }
-            Thumb::AndImmediate(_) => todo!(),
-            Thumb::AndRegister(_) => todo!(),
-            Thumb::AsrImmediate(_) => todo!(),
+            Thumb::AndImmediate(and) => {
+                todo!("Need to figure out how to do thumb_expand_imm with ASPR.C");
+                // https://developer.arm.com/documentation/ddi0403/d/Application-Level-Architecture/The-Thumb-Instruction-Set-Encoding/32-bit-Thumb-instruction-encoding/Modified-immediate-constants-in-Thumb-instructions?lang=en
+                // consume!((s,rd,rn,imm) from and);
+                // let (rd,rn,imm) = (rd.unwrap_or(rn).local_into(),rn.local_into(),imm.in
+            }
+            Thumb::AndRegister(and) => {
+                consume!((s,rd,rn,rm,shift) from and);
+                let (rd, rn, rm) = (
+                    rd.unwrap_or(rn).local_into(),
+                    rn.local_into(),
+                    rm.local_into(),
+                );
+                let mut ret = match shift {
+                    Some(shift) => {
+                        todo!("Make the shift set the carry bit");
+                        let (shift_t, shift_n) = (
+                            shift.shift_t.local_into(),
+                            (shift.shift_n as u32).local_into(),
+                        );
+                        vec![Operation::Shift {
+                            destination: rd,
+                            operand: rm,
+                            shift_n: shift_n,
+                            shift_t: shift_t,
+                        }]
+                    }
+                    None => vec![],
+                };
+                ret.push(Operation::Add {
+                    destination: rd.clone(),
+                    operand1: rn,
+                    operand2: rm,
+                });
+                if let Some(true) = s {
+                    // The shift should already set the shift carry bit
+                    ret.extend([Operation::SetNFlag(rd.clone()), Operation::SetZFlag(rd)]);
+                }
+                ret
+            }
+            Thumb::AsrImmediate(asr) => todo!(),
             Thumb::AsrRegister(_) => todo!(),
             Thumb::B(_) => todo!(),
             Thumb::Bfc(_) => todo!(),

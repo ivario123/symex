@@ -4,6 +4,7 @@ use crate::{arch::Arch, general_assembly::state::GAState};
 use colored::*;
 use core::fmt::{self, Write};
 use indenter::indented;
+use std::fmt::write;
 
 use crate::smt::DExpr;
 
@@ -219,6 +220,9 @@ pub enum ExpressionType {
     /// Structure
     Struct(Vec<ExpressionType>),
 
+    /// Boolean
+    Bool(bool),
+
     /// Type is unknown.
     Unknown,
 }
@@ -240,6 +244,7 @@ impl ExpressionType {
                 Some(size_in_bits)
             }
             ExpressionType::Unknown => None,
+            ExpressionType::Bool(bool) => Some(1),
         }
     }
 
@@ -283,6 +288,7 @@ impl ExpressionType {
                 Some(TypedVariable::Struct(elements))
             }
             ExpressionType::Unknown => None,
+            ExpressionType::Bool(b) => Some(TypedVariable::Bool(b.clone())),
         }
     }
 }
@@ -298,6 +304,9 @@ enum TypedVariable<'a> {
 
     /// Array or vector of a certain type with a specific number of values.
     Array(Vec<TypedVariable<'a>>),
+
+    /// A Boolean
+    Bool(bool),
 
     /// Structure
     Struct(Vec<TypedVariable<'a>>),
@@ -365,6 +374,7 @@ impl<'a> fmt::Display for TypedVariable<'a> {
                     write!(f, "}}")
                 }
             },
+            Bool(b) => write!(f, "{b} (bool)"),
         }
     }
 }
