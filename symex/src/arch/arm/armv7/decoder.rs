@@ -100,6 +100,30 @@ macro_rules! shift {
        }
     };
 }
+macro_rules! shift_imm {
+    ($ret:ident.($shift_t:ident,$($shift_n_const:literal)?$($shift_n:ident)?) $reg:ident -> $target:ident $(set c for $reg_flag:ident)?) => {
+        {
+            let (shift_t, shift_n) = (
+                    $shift_t,
+                    $($shift_n)?$($shift_n_const)?,
+            );
+            $($ret.push( match shift_t{
+                GAShift::Lsl => Operation::SetCFlagShiftLeft { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Asr => Operation::SetCFlagSra { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Lsr => Operation::SetCFlagSrl { operand: $reg_flag.clone(), shift: shift_n.clone() },
+                GAShift::Rrx => todo!("This needs some work, https://developer.arm.com/documentation/ddi0406/b/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-data-types-and-arithmetic/Integer-arithmetic?lang=en"),
+                GAShift::Ror => todo!("This needs to be revisited, seems that the current implementation depends on this being done after the operation is performed")
+            });)?
+            $ret.push(
+                Operation::Shift {
+                    destination: $target.clone(),
+                    operand: $reg.clone(),
+                    shift_n,
+                    shift_t,
+            })
+        }
+    };
+}
 macro_rules! backup {
     ($($id:ident),*) => {
         {
@@ -1681,7 +1705,6 @@ impl Into<Vec<Operation>> for Thumb {
                 ]
             },
             Thumb::Ldrt(ldrt) => {
-                
                 consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into()) from ldrt);
                 let address_setter = GAOperand::Local("address".to_owned());
                 let address = GAOperand::AddressInLocal("address".to_owned(), 32);
@@ -1690,10 +1713,53 @@ impl Into<Vec<Operation>> for Thumb {
                     Operation::Move { destination: rt, source: address }
                 ]
             },
-            Thumb::LslImmediate(_) => todo!(),
-            Thumb::LslRegister(_) => todo!(),
-            Thumb::LsrImmediate(_) => todo!(),
-            Thumb::LsrRegister(_) => todo!(),
+            Thumb::LslImmediate(lsl) => {
+                consume!((s.unwrap_or(false),rd.local_into(),rm.local_into(), imm) from lsl);
+                let shift:Option<dissarmv7::prelude::ImmShift> = Some((Shift::Lsl,imm).try_into().unwrap());
+                let mut ret = vec![];
+                match s {
+                    true => shift!(ret.shift rm -> rd set c for rm),
+                    false => shift!(ret.shift rm -> rd),
+                };
+                ret
+            },
+            Thumb::LslRegister(lsl) => {
+                consume!((s.unwrap_or(false),rd.local_into(),rn.local_into(),rm.local_into()) from lsl);
+                local!(shift_n,result);
+                let mut ret = vec![
+                    Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }
+                ];
+                let shift_t = Shift::Lsl.local_into();
+                match s {
+                    true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
+                    false => shift_imm!(ret.(shift_t,shift_n) rn -> rd)
+                };
+                ret
+
+            },
+            Thumb::LsrImmediate(lsr) => {
+                consume!((s.unwrap_or(false),rd.local_into(),rm.local_into(), imm) from lsr);
+                let shift:Option<dissarmv7::prelude::ImmShift> = Some((Shift::Lsr,imm).try_into().unwrap());
+                let mut ret = vec![];
+                match s {
+                    true => shift!(ret.shift rm -> rd set c for rm),
+                    false => shift!(ret.shift rm -> rd),
+                };
+                ret
+            },
+            Thumb::LsrRegister(lsr) => {
+                consume!((s.unwrap_or(false),rd.local_into(),rn.local_into(),rm.local_into()) from lsr);
+                local!(shift_n,result);
+                let mut ret = vec![
+                    Operation::And { destination: shift_n.clone(), operand1: rm, operand2: 0xff.local_into() }
+                ];
+                let shift_t = Shift::Lsr.local_into();
+                match s {
+                    true => shift_imm!(ret.(shift_t,shift_n) rn -> rd set c for rn),
+                false => shift_imm!(ret.(shift_t,shift_n) rn -> rd)
+                };
+                ret
+            },
             Thumb::Mla(_) => todo!(),
             Thumb::Mls(_) => todo!(),
             Thumb::MovImmediate(_) => todo!(),
