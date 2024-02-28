@@ -195,6 +195,13 @@ pub enum Operation {
         carry: bool,
     },
 
+    /// Sets the carry flag based on a given [`Shift`]
+    SetCFlagShift {
+        operand: Operand,
+        shift_n: Operand,
+        shift_t: Shift,
+    },
+
     /// Set the carry flag based on a left shift
     SetCFlagShiftLeft { operand: Operand, shift: Operand },
 
@@ -221,6 +228,9 @@ pub enum Operation {
         operands: Vec<Operand>,
         operations: Vec<Operation>,
     },
+
+    /// Sets the destination value to a fresh symbol
+    Symbolic { destination: Operand, name: String },
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -282,6 +292,8 @@ pub enum Operand {
 
     /// Representing the value stored in memory
     /// at the address stored in a local.
+    ///
+    /// Reads the specified number of bits from memory.
     AddressInLocal(String, u32),
 
     /// Representing the value stored in memory

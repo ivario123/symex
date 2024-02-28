@@ -255,10 +255,7 @@ impl<'vm> GAExecutor<'vm> {
             }
             Operand::Flag(f) => {
                 let intermediate = self.get_dexpr_from_dataword(DataWord::Word8(0b1));
-                self.state.set_flag(
-                    f.clone(),
-                    value.and(&intermediate),
-                );
+                self.state.set_flag(f.clone(), value.and(&intermediate));
             }
         }
         Ok(())
@@ -362,6 +359,8 @@ impl<'vm> GAExecutor<'vm> {
 
         // initiate local variable storage
         let mut local: HashMap<String, DExpr> = HashMap::new();
+        // TODO! :  Include conditionals here, also allow for branching within the block, ie. jump
+        // to sepecific instruction
         for (n, operation) in i.operations.iter().enumerate() {
             self.current_operation_index = n;
             self.executer_operation(operation, &mut local)?;
@@ -708,6 +707,66 @@ impl<'vm> GAExecutor<'vm> {
                     add_with_carry(&op1, &op2, &carry, self.project.get_word_size()).result;
                 self.set_operand_value(destination, result, local)?;
             }
+            Operation::SetCFlagShift {
+                operand,
+                shift_n,
+                shift_t,
+            } => {
+                // // This is implemented for the armv7-m Will be merged with the other SetCFlag
+                // // variants in the future but for now this will do.
+                // let ext_word_size = self.project.get_word_size()*2;
+                // // Extend to a double word, this should be the maximum that can be shifted by.
+                // let op_x = match shift_t{
+                //     // Needs sign extend
+                //     Shift::Asr => {
+                //         self.get_operand_value(operand, local)?.sign_ext(ext_word_size)
+                //     }
+                //     _ => self.get_operand_value(operand, local)?.zero_ext(ext_word_size)
+                // };
+                // let n = self.get_operand_value(shift_n, local)?;
+                //
+                // // Each rotation handles the op a bit differently
+                // let op_x = match shift_t{
+                //     Shift::Lsr => {
+                //         // Pads from the right
+                //         let op = op_x.sll(&n);
+                //         op
+                //
+                //     }
+                //     // Needs no modification
+                //     Shift::Lsl | Shift::Asr | Shift::Rrx | Shift::Ror => {
+                //         op_x
+                //     }
+                // };
+                //
+                // let result = match shift_t {
+                //     Shift::Lsl => {
+                //         op_x.sll(&n)
+                //     }
+                //     Shift::Lsr  => {
+                //         let op = op_x.srl(&n);
+                //         op
+                //     }
+                //     Shift::Asr => {
+                //         // Pads from the right
+                //         let op = op_x.sra(&n);
+                //         op
+                //
+                //     }
+                //     Shift::Rrx | Shift::Ror => {
+                //         op_x
+                //     }
+
+                // };
+                // let one = self.get_dexpr_from_dataword(DataWord::Word64(0b1)).zero_ext(ext_word_size);
+                // let c = match shift_t {
+                //     Shift::Lsl => {
+                //         let mask = one.sll(&self.get_dexpr_from_dataword(DataWord::Word32(self.project.get_word_size())));
+                //         result.
+                //     }
+                // }
+                todo!()
+            }
             // These need to be tested are way to complex to be trusted
             Operation::SetCFlagShiftLeft { operand, shift } => {
                 let op = self
@@ -759,6 +818,13 @@ impl<'vm> GAExecutor<'vm> {
                 // result = srl(op, shift) OR sll(op, word_size - shift)
                 let c = result.srl(&word_size_minus_one).resize_unsigned(1);
                 self.state.set_flag("C".to_owned(), c);
+            }
+            Operation::Symbolic { destination, name } => {
+                let value = self
+                    .state
+                    .ctx
+                    .unconstrained(self.project.get_word_size(), name);
+                self.set_operand_value(destination, value, local)?;
             }
         }
         Ok(())

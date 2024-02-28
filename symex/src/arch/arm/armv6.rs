@@ -24,7 +24,7 @@ impl Arch for ArmV6M {
         let mut buff: dissarmv7::buffer::PeekableBuffer<u8, _> =
             b2.iter().cloned().to_owned().into();
 
-        let instr = dissarmv7::ASM::parse_exact::<_,1>(&mut buff);
+        let instr = dissarmv7::ASM::parse_exact::<_, 1>(&mut buff);
         println!("{ret:?}, {instr:?}");
         Ok(ret.translate())
     }

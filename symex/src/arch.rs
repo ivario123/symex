@@ -58,13 +58,12 @@ pub trait Arch: Debug {
 
 /// A generic family of [`Architectures`](Arch).
 ///
-/// This trait denotes that the implementer can discern between the different variants 
+/// This trait denotes that the implementer can discern between the different variants
 /// of architectures in the family using only the [`File`].
 pub trait Family: Debug {
     /// Tries to convert a given binary to an architecture in the family.
     fn try_from(file: &File) -> Result<Box<dyn Arch>, ArchError>;
 }
-
 
 // This allows us to break the code in to modules more easily
 //
@@ -75,7 +74,6 @@ pub trait Family: Debug {
 // TODO! Break the VM in to a generic VM
 //
 // TODO! Automagically detect if the target is LLVM or GA
-
 
 /// Tries to get the target [`Architecture`](Arch) for the binary [`File`].
 ///

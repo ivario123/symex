@@ -70,7 +70,7 @@ fn arm_isa<'a, T: ObjectSection<'a>>(section: &T) -> Result<ArmIsa, ArchError> {
 
     match f_cpu_arch {
         12 => Ok(ArmIsa::ArmV6M),
-        13=> Ok(ArmIsa::ArmV7EM),
+        13 => Ok(ArmIsa::ArmV7EM),
 
         _ => Err(ArchError::UnsuportedArchitechture),
     }

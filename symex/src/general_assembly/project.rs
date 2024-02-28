@@ -239,7 +239,8 @@ impl Project {
                 arch_from_family::<Arm>(&obj_file)
             }
             _ => todo!(),
-        }.unwrap();
+        }
+        .unwrap();
         architecture.add_hooks(cfg);
 
         let pc_hooks = cfg.pc_hooks.clone();
