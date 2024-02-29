@@ -149,7 +149,8 @@ macro_rules! local {
         )*
     };
 }
-
+// These two need to be broken out in to a proc macro to allow any generic expressions and some
+// neater syntax
 macro_rules! bin_op {
     ($($d:ident = $lhs:ident + $rhs:expr),*) => {
         $(Operation::Add { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
@@ -193,6 +194,7 @@ macro_rules! bin_op {
 
 
 }
+
 macro_rules! op  {
     ($d:ident = $lhs:ident $op:tt $rhs:expr) => {
         bin_op!($d = $lhs $op $rhs)
@@ -2011,32 +2013,190 @@ impl Into<Vec<Operation>> for Thumb {
                         sp = sp + (4*registers.regs.len() as u32).local_into();
                     ]
                 );
-                for reg in registers.regs {
+                let mut pc = false;
+                let regs = registers.regs.iter().map(|reg| {if *reg == Register::PC{pc =true};reg.local_into()}).collect::<Vec<GAOperand>>();
+                for reg in regs {
                     op!(
                         ret.extend[
+                            // Read the current address in to the specified reg
+                            (address -> reg);
+                            address_setter = address_setter + 4.local_into();
                         ]
                     );
                 }
-
-                todo!()
-
+                if pc {
+                    todo!("LoadWritePc")
+                }
+                ret
             },
-            Thumb::Push(_) => todo!(),
-            Thumb::Qadd(_) => todo!(),
-            Thumb::Qadd16(_) => todo!(),
-            Thumb::Qadd8(_) => todo!(),
-            Thumb::Qasx(_) => todo!(),
-            Thumb::Qdadd(_) => todo!(),
-            Thumb::Qdsub(_) => todo!(),
-            Thumb::Qsax(_) => todo!(),
-            Thumb::Qsub(_) => todo!(),
-            Thumb::Qsub16(_) => todo!(),
-            Thumb::Qsub8(_) => todo!(),
-            Thumb::Rbit(_) => todo!(),
-            Thumb::Rev(_) => todo!(),
-            Thumb::Rev16(_) => todo!(),
-            Thumb::Revsh(_) => todo!(),
-            Thumb::RorImmediate(_) => todo!(),
+            Thumb::Push(push) => {
+                consume!((registers) from push);
+                let address_setter = GAOperand::Local("address".to_owned());
+                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let sp = Register::SP.local_into();
+                
+                let mut ret = vec![];
+                op!(
+                    ret.extend[
+                        address_setter = sp - (4*registers.regs.len() as u32).local_into();
+                        sp = sp - (4*registers.regs.len() as u32).local_into();
+                    ]
+                );
+                let regs = registers.regs.iter().map(|reg| reg.local_into()).collect::<Vec<GAOperand>>();
+                for reg in regs {
+                    op!(
+                        ret.extend[
+                            // Read the current address in to the specified reg
+                            (address -> reg);
+                            address_setter = address_setter + 4.local_into();
+                        ]
+                    );
+                }
+                ret
+            },
+            Thumb::Qadd(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qadd16(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qadd8(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qasx(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qdadd(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qdsub(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qsax(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qsub(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qsub16(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Qsub8(_) => todo!("Need to figure out how to do saturating operations"),
+            Thumb::Rbit(rbit) => {
+                consume!((rd.local_into(),rm.local_into()) from rbit);
+                let mut ret =  vec![];
+                local!(intermediate);
+                let zero = 0.local_into();
+                for i in 0..31u32 {
+                    let mask = ( 1 << i ).local_into();
+                    let shift = 31 - (i as i32)*2i32;
+                    match shift >  0{
+                        true => {
+                            let shift = (shift as u32).local_into();
+                            op!(
+                                ret.extend[
+                                    (zero -> intermediate);
+                                    intermediate = rm & mask;
+                                    intermediate =  intermediate << shift;
+                                    rd = rd|intermediate;
+                                ]
+                            );
+                        }
+                        false => {
+                            let shift = (-shift as u32).local_into();
+                            op!(
+                                ret.extend[
+                                    (zero -> intermediate);
+                                    intermediate = rm & mask;
+                                    intermediate =  intermediate >> shift;
+                                    rd = rd|intermediate;
+                                ]
+                            );
+                        }
+                    }
+                }
+                ret
+            },
+            Thumb::Rev(rev) => {
+                consume!((rd.local_into(),rm.local_into()) from rev);
+                local!(int1,int2,int3,int4);
+                let mut ret = vec![];
+                let m = u8::MAX as u32;
+                let mask = |m:u32,n:u32| {(m << n*8).local_into()};
+                let zero = 0.local_into();
+                op!(
+                    ret.extend[
+                        int1 = rm & mask(m,0);
+                        int2 = rm & mask(m,1);
+                        int3 = rm & mask(m,2);
+                        int4 = rm & mask(m,3);
+                        int1 = int1 << (24).local_into();
+                        int2 = int2 << (8).local_into();
+                        int3 = int3 >> (8).local_into();
+                        int4 = int4 >> (24).local_into();
+                        (zero -> rd);
+                        rd = rd | int1;
+                        rd = rd | int2;
+                        rd = rd | int3;
+                        rd = rd | int4;
+                    ]
+                );
+
+                
+                ret
+            },
+            Thumb::Rev16(rev) => {
+                consume!((rd.local_into(),rm.local_into()) from rev);
+                local!(int1,int2,int3,int4);
+                let mut ret = vec![];
+                let m = u8::MAX as u32;
+                let mask = |m:u32,n:u32| {(m << n*8).local_into()};
+                let zero = 0.local_into();
+                op!(
+                    ret.extend[
+                        int1 = rm & mask(m,0);
+                        int2 = rm & mask(m,1);
+                        int3 = rm & mask(m,2);
+                        int4 = rm & mask(m,3);
+                        int1 = int1 << (8).local_into();
+                        int2 = int2 >> (8).local_into();
+                        int3 = int3 << (8).local_into();
+                        int4 = int4 >> (8).local_into();
+                        (zero -> rd);
+                        rd = rd | int1;
+                        rd = rd | int2;
+                        rd = rd | int3;
+                        rd = rd | int4;
+                    ]
+                );
+                ret
+            },
+            Thumb::Revsh(revsh) => {
+                consume!((rd.local_into(),rm.local_into()) from revsh);
+                local!(int1,int2);
+                let mut ret = vec![];
+                let m = u8::MAX as u32;
+                let mask = |m:u32,n:u32| {(m << n*8).local_into()};
+                let zero = 0.local_into();
+                op!(
+                    ret.extend[
+                        int1 = rm & mask(m,0);
+                        int2 = rm & mask(m,1);
+                        int1 = int1 << (8).local_into();
+                        int2 = int2 >> (8).local_into();
+                        (zero -> rd);
+                    ]
+                );
+                ret.push(
+                    // This should be correct as the value has already been shifted over by
+                    // 9
+                    Operation::SignExtend { destination: rd.clone(), operand: int1, bits: 16 }
+                );
+                op!(
+                    ret.extend[
+                        rd = rd | int2;
+                    ]
+                );
+                ret
+            },
+            Thumb::RorImmediate(ror) => {
+                consume!((s,rd.local_into(), rm.local_into(),imm) from ror);
+                let imm: u32 = imm.into();
+                let shift_n = imm.local_into();
+                let mut ret = vec![
+                    Operation::Sror { destination: rd.clone(), operand: rm.clone(), shift: shift_n.clone() },
+                ];
+                if let Some(true) = s{
+                    ret.extend([
+                        Operation::SetZFlag(rd.clone()),
+                        Operation::SetNFlag(rd.clone()),
+                        Operation::SetCFlagRor(rd.clone())
+                    ]);
+                }
+                ret
+            },
             Thumb::RorRegister(_) => todo!(),
             Thumb::Rrx(_) => todo!(),
             Thumb::RsbImmediate(_) => todo!(),
