@@ -38,10 +38,10 @@ impl Family for Arm {
             None => Err(ArchError::MissingSection(".ARM.attributes")),
         }?;
         let isa = arm_isa(&section)?;
-        return match isa {
+        match isa {
             ArmIsa::ArmV6M => Ok(Box::new(ArmV6M {})),
             ArmIsa::ArmV7EM => Ok(Box::new(ArmV7EM::default())),
-        };
+        }
     }
 }
 

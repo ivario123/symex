@@ -16,6 +16,14 @@ pub use run_config::*;
 
 pub type Result<T> = std::result::Result<T, GAError>;
 
+#[derive(Debug, Clone, Copy)]
+pub enum WordSize {
+    Bit64,
+    Bit32,
+    Bit16,
+    Bit8,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum GAError {
     #[error("Project error: {0}")]
@@ -32,58 +40,6 @@ pub enum GAError {
 
     #[error("Solver error.")]
     SolverError(#[from] SolverError),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum WordSize {
-    Bit64,
-    Bit32,
-    Bit16,
-    Bit8,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum DataWord {
-    Word64(u64),
-    Word32(u32),
-    Word16(u16),
-    Word8(u8),
-}
-
-impl Into<u64> for DataWord {
-    fn into(self) -> u64 {
-        match self {
-            DataWord::Word64(v) => v as u64,
-            DataWord::Word32(v) => v as u64,
-            DataWord::Word16(v) => v as u64,
-            DataWord::Word8(v) => v as u64,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum RawDataWord {
-    Word64([u8; 8]),
-    Word32([u8; 4]),
-    Word16([u8; 2]),
-    Word8([u8; 1]),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum DataHalfWord {
-    HalfWord64(u32),
-    HalfWord32(u16),
-    HalfWord16(u8),
-}
-
-impl Into<DataWord> for DataHalfWord {
-    fn into(self) -> DataWord {
-        match self {
-            DataHalfWord::HalfWord64(v) => DataWord::Word64(v as u64),
-            DataHalfWord::HalfWord32(v) => DataWord::Word32(v as u32),
-            DataHalfWord::HalfWord16(v) => DataWord::Word16(v as u16),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

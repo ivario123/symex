@@ -14,10 +14,9 @@ use crate::{
     smt::{DContext, DExpr, DSolver},
 };
 
-use super::{
-    instruction::{Condition, Instruction},
-    project::Project,
-};
+use super::{instruction::Instruction, project::Project};
+
+use general_assembly::{condition::Condition, operand::DataWord};
 
 pub enum HookOrInstruction {
     PcHook(PCHook),
@@ -374,18 +373,10 @@ impl GAState {
                 if self.project.address_in_range(address_const) {
                     // read from static memmory in project
                     let value = match self.project.get_word(address_const)? {
-                        crate::general_assembly::DataWord::Word64(data) => {
-                            self.ctx.from_u64(data, 64)
-                        }
-                        crate::general_assembly::DataWord::Word32(data) => {
-                            self.ctx.from_u64(data as u64, 32)
-                        }
-                        crate::general_assembly::DataWord::Word16(data) => {
-                            self.ctx.from_u64(data as u64, 16)
-                        }
-                        crate::general_assembly::DataWord::Word8(data) => {
-                            self.ctx.from_u64(data as u64, 8)
-                        }
+                        DataWord::Word64(data) => self.ctx.from_u64(data, 64),
+                        DataWord::Word32(data) => self.ctx.from_u64(data as u64, 32),
+                        DataWord::Word16(data) => self.ctx.from_u64(data as u64, 16),
+                        DataWord::Word8(data) => self.ctx.from_u64(data as u64, 8),
                     };
                     Ok(value)
                 } else {

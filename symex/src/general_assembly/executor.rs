@@ -6,17 +6,18 @@ use tracing::{debug, trace};
 
 use crate::{
     elf_util::{ExpressionType, Variable},
-    general_assembly::{instruction::Shift, path_selection::Path, state::HookOrInstruction},
+    general_assembly::{path_selection::Path, state::HookOrInstruction},
     smt::{DExpr, SolverError},
 };
 
 use super::{
-    instruction::{Instruction, Operand, Operation},
+    instruction::Instruction,
     project::Project,
     state::{ContinueInsideInstruction, GAState},
     vm::VM,
-    DataWord, GAError, Result,
+    GAError, Result,
 };
+use general_assembly::{prelude::*,operand::DataWord};
 
 pub struct GAExecutor<'vm> {
     pub vm: &'vm mut VM,

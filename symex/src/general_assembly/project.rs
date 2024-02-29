@@ -13,9 +13,10 @@ use crate::{
 use self::segments::Segments;
 
 use super::{
-    instruction::Instruction, state::GAState, DataHalfWord, DataWord, Endianness, RawDataWord,
+    instruction::Instruction, state::GAState, Endianness,
     Result as SuperResult, RunConfig, WordSize,
 };
+use general_assembly::{operand::{DataHalfWord,DataWord,RawDataWord}};
 
 mod dwarf_helper;
 use dwarf_helper::*;

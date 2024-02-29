@@ -14,9 +14,11 @@ use crate::{
         project::{PCHook, RegisterReadHook, RegisterWriteHook},
         state::GAState,
         translator::{Hookable, Translatable},
-        DataWord, RunConfig,
+        RunConfig,
     },
 };
+
+use general_assembly::operand::DataWord;
 
 type GAInstruction = crate::general_assembly::instruction::Instruction;
 type GAOperation = crate::general_assembly::instruction::Operation;
