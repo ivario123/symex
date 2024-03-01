@@ -1,7 +1,7 @@
 //! Defines all operations that are valid in [`GeneralAssembly`]
 
-use crate::operand::Operand;
 use crate::condition::Condition;
+use crate::operand::Operand;
 use crate::shift::Shift;
 
 /// Represents a single operation

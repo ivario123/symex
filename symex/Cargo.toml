@@ -26,6 +26,7 @@ gimli = "0.28.0"
 regex = "1.10.2"
 
 general_assembly = {path = "./general_assembly"}
+transpiler = {path = "./transpiler"}
 
 [features]
 # Defines a feature named `llvm` that enables symbolic execution at LLVM-IR level

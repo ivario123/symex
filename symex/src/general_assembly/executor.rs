@@ -17,7 +17,7 @@ use super::{
     vm::VM,
     GAError, Result,
 };
-use general_assembly::{prelude::*,operand::DataWord};
+use general_assembly::{operand::DataWord, prelude::*};
 
 pub struct GAExecutor<'vm> {
     pub vm: &'vm mut VM,

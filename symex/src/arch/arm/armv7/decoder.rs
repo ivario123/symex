@@ -1,13 +1,20 @@
 use std::sync::mpsc::channel;
 
-use crate::{arch::Arch, general_assembly::{
-    instruction::{self, Condition as GACondition, Instruction as GAInstruction, Operand as GAOperand, Operation, Shift as GAShift},
-    translator::Translatable,
-}};
-use general_assembly::operand::DataWord;
+use crate::{
+    arch::Arch,
+    general_assembly::{
+        instruction::{
+            self, Condition as GACondition, Instruction as GAInstruction, Operand as GAOperand,
+            Operation, Shift as GAShift,
+        },
+        translator::Translatable,
+    },
+};
+use dissarmv7::prelude::Shift;
 use dissarmv7::prelude::{Condition, Register, RegisterList, Thumb};
-use dissarmv7::{ prelude::Shift};
+use general_assembly::operand::DataWord;
 use paste::paste;
+use transpiler::pseudo;
 
 impl sealed::ToString for Register {
     fn to_string(self) -> String {
@@ -159,6 +166,10 @@ macro_rules! bin_op {
     ($($d:ident = $lhs:ident + $rhs:ident + c),*) => {
         $(Operation::Adc { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
     };
+    // Add carry bit
+    ($($d:ident = $lhs:ident adc $rhs:expr),*) => {
+        $(Operation::Adc { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
+    };
 
     ($($d:ident = $lhs:ident - $rhs:expr),*) => {
         $(Operation::Sub { destination: $d.clone(), operand1: $lhs.clone(), operand2: $rhs.clone()}),*
@@ -188,11 +199,12 @@ macro_rules! bin_op {
     ($($d:ident = $rhs:ident),*) => {
         $(Operation::Move { destination: $d.clone(), source: $rhs.clone()}),*
     };
-    ($($d:ident = ! $rhs:expr),*) => {
+    ($($d:ident = ! $rhs:ident),*) => {
         $(Operation::Not { destination: $d.clone(), operand: $rhs.clone()}),*
-    }
-
-
+    };
+    // ($d:ident = SInt($op:ident,$n:ident)) => {
+    //
+    // }
 }
 
 macro_rules! op  {
@@ -203,13 +215,47 @@ macro_rules! op  {
         bin_op!($d = $lhs)
     };
     // $($((let $local:ident))?$($d:ident)? = $lhs:ident $($op:tt $rhs:expr)?;)*
-    ($ret:ident.extend[$($(($source:ident -> $destination:ident))?$($d:ident = $lhs:ident $($op:tt $rhs:expr)?)?;)*]) => {
+    ($ret:ident.extend[$(
+                op
+                        // need to add some special case syntax for assigns and unary operations
+                        $([$sd:ident = SInt($so:ident,$sn:literal)];)?
+                        $(($source:ident -> $destination:ident);)?
+                        
+                        $([$unop:tt $operand:ident -> $result_unop:ident];)?
+                        $($($defined_d:ident)?$(let $d:ident)? = $lhs:ident $(
+                                $op:tt $rhs:expr
+                            )?;
+                        )?
+                        $( => $chained:expr;)?
+                        
+                    )*]) => {
+        // pseudo!($d = $($lhs_base_case)?$($lhs $op $rhs)?),
+        $(
+            $($ret.push(bin_op!($result_unop = $unop $operand));)?
+            $($ret.push(bin_op!($destination = $source));)?
+            $(
+                $(local!($d);)?
+                $ret.push(bin_op!($($d)?$($defined_d)? = $lhs $($op $rhs)?));
+            )?
+            $($ret.push($chained);)?
+            $(
+                let mask = ($sn).local_into();
+                // local!(intermediate);
+                // This might be incorrect
+                //
+                // TODO! Validate that this is correct
+                pseudo!(
+                    $ret.extend[
+                        let intermediate = $so & mask;
+                        
+                    ]
 
-        $ret.extend([$(
-            // op!($d = $($lhs_base_case)?$($lhs $op $rhs)?),
-            $(bin_op!($destination = $source))?
-            $(bin_op!($d = $lhs $($op $rhs)?))?,
-        )*])
+                );
+                
+
+
+            )?
+        )*
     };
 }
 
@@ -1830,10 +1876,10 @@ impl Into<Vec<Operation>> for Thumb {
                 consume!((rn.local_into(),ra.local_into(), rd.local_into(), rm.local_into()) from mla);
                 // TODO! Validate that the usage of SInt or UInt is irrelevant
                 let mut ret = Vec::with_capacity(3);
-                op!(
+                pseudo!(
                     ret.extend[
-                        rd = rn*rm;
-                        rd = rd+ra;
+                       rd = rn*rm;
+                       rd = rd+ra;
                     ]
                 );
                 ret
@@ -1841,7 +1887,7 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::Mls(mls) => {
                 consume!((rn.local_into(),ra.local_into(), rd.local_into(), rm.local_into()) from mls);
                 let mut ret = Vec::with_capacity(3);
-                op!(
+                pseudo!(
                     ret.extend[
                         rd = rn*rm;
                         rd = ra-rd;
@@ -1894,7 +1940,7 @@ impl Into<Vec<Operation>> for Thumb {
                     let mask = (u16::MAX as u32).local_into();
                     let shift = 16.local_into();
                     local!(intermediate);
-                    op!(
+                    pseudo!(
                         ret.extend[
                             intermediate = imm << shift;
                             // Perserve the lower half word
@@ -1926,7 +1972,7 @@ impl Into<Vec<Operation>> for Thumb {
                 let mut ret =  Vec::with_capacity(5);
                 local!(shifted);
                 shift!(ret.shift rm -> shifted set c for rm);
-                ret.push(bin_op!(rd = !shifted));
+                ret.push(bin_op!(rd = ! shifted));
                 if let Some(true) = s {
                     ret.extend([
                         Operation::SetNFlag(rd.clone()),
@@ -1983,7 +2029,7 @@ impl Into<Vec<Operation>> for Thumb {
                     true => (rn,shifted),
                     _ => (shifted,rn)
                 };
-                op!(
+                pseudo!(
                     ret.extend[
                         lsh = lsh & (u16::MAX as u32).local_into();
                         msh = msh & (!(u16::MAX as u32)).local_into();
@@ -2007,19 +2053,20 @@ impl Into<Vec<Operation>> for Thumb {
                 let sp = Register::SP.local_into();
                 
                 let mut ret = vec![];
-                op!(
+                pseudo!(
+
                     ret.extend[
-                        (sp -> address_setter);
+                        address_setter = sp;
                         sp = sp + (4*registers.regs.len() as u32).local_into();
                     ]
                 );
                 let mut pc = false;
                 let regs = registers.regs.iter().map(|reg| {if *reg == Register::PC{pc =true};reg.local_into()}).collect::<Vec<GAOperand>>();
                 for reg in regs {
-                    op!(
+                    pseudo!(
                         ret.extend[
                             // Read the current address in to the specified reg
-                            (address -> reg);
+                            reg = address;
                             address_setter = address_setter + 4.local_into();
                         ]
                     );
@@ -2036,7 +2083,7 @@ impl Into<Vec<Operation>> for Thumb {
                 let sp = Register::SP.local_into();
                 
                 let mut ret = vec![];
-                op!(
+                pseudo!(
                     ret.extend[
                         address_setter = sp - (4*registers.regs.len() as u32).local_into();
                         sp = sp - (4*registers.regs.len() as u32).local_into();
@@ -2044,11 +2091,12 @@ impl Into<Vec<Operation>> for Thumb {
                 );
                 let regs = registers.regs.iter().map(|reg| reg.local_into()).collect::<Vec<GAOperand>>();
                 for reg in regs {
-                    op!(
+                    pseudo!(
                         ret.extend[
                             // Read the current address in to the specified reg
-                            (address -> reg);
+                            reg = address;
                             address_setter = address_setter + 4.local_into();
+
                         ]
                     );
                 }
@@ -2075,9 +2123,9 @@ impl Into<Vec<Operation>> for Thumb {
                     match shift >  0{
                         true => {
                             let shift = (shift as u32).local_into();
-                            op!(
+                            pseudo!(
                                 ret.extend[
-                                    (zero -> intermediate);
+                                    intermediate = zero;
                                     intermediate = rm & mask;
                                     intermediate =  intermediate << shift;
                                     rd = rd|intermediate;
@@ -2086,9 +2134,9 @@ impl Into<Vec<Operation>> for Thumb {
                         }
                         false => {
                             let shift = (-shift as u32).local_into();
-                            op!(
+                            pseudo!(
                                 ret.extend[
-                                    (zero -> intermediate);
+                                    intermediate = zero;
                                     intermediate = rm & mask;
                                     intermediate =  intermediate >> shift;
                                     rd = rd|intermediate;
@@ -2106,7 +2154,7 @@ impl Into<Vec<Operation>> for Thumb {
                 let m = u8::MAX as u32;
                 let mask = |m:u32,n:u32| {(m << n*8).local_into()};
                 let zero = 0.local_into();
-                op!(
+                pseudo!(
                     ret.extend[
                         int1 = rm & mask(m,0);
                         int2 = rm & mask(m,1);
@@ -2116,7 +2164,7 @@ impl Into<Vec<Operation>> for Thumb {
                         int2 = int2 << (8).local_into();
                         int3 = int3 >> (8).local_into();
                         int4 = int4 >> (24).local_into();
-                        (zero -> rd);
+                        rd = zero;
                         rd = rd | int1;
                         rd = rd | int2;
                         rd = rd | int3;
@@ -2134,7 +2182,7 @@ impl Into<Vec<Operation>> for Thumb {
                 let m = u8::MAX as u32;
                 let mask = |m:u32,n:u32| {(m << n*8).local_into()};
                 let zero = 0.local_into();
-                op!(
+                pseudo!(
                     ret.extend[
                         int1 = rm & mask(m,0);
                         int2 = rm & mask(m,1);
@@ -2144,7 +2192,7 @@ impl Into<Vec<Operation>> for Thumb {
                         int2 = int2 >> (8).local_into();
                         int3 = int3 << (8).local_into();
                         int4 = int4 >> (8).local_into();
-                        (zero -> rd);
+                        rd = zero;
                         rd = rd | int1;
                         rd = rd | int2;
                         rd = rd | int3;
@@ -2160,13 +2208,13 @@ impl Into<Vec<Operation>> for Thumb {
                 let m = u8::MAX as u32;
                 let mask = |m:u32,n:u32| {(m << n*8).local_into()};
                 let zero = 0.local_into();
-                op!(
+                pseudo!(
                     ret.extend[
                         int1 = rm & mask(m,0);
                         int2 = rm & mask(m,1);
                         int1 = int1 << (8).local_into();
                         int2 = int2 >> (8).local_into();
-                        (zero -> rd);
+                        rd = zero;
                     ]
                 );
                 ret.push(
@@ -2174,7 +2222,7 @@ impl Into<Vec<Operation>> for Thumb {
                     // 9
                     Operation::SignExtend { destination: rd.clone(), operand: int1, bits: 16 }
                 );
-                op!(
+                pseudo!(
                     ret.extend[
                         rd = rd | int2;
                     ]
@@ -2197,11 +2245,169 @@ impl Into<Vec<Operation>> for Thumb {
                 }
                 ret
             },
-            Thumb::RorRegister(_) => todo!(),
-            Thumb::Rrx(_) => todo!(),
-            Thumb::RsbImmediate(_) => todo!(),
-            Thumb::RsbRegister(_) => todo!(),
-            Thumb::Sadd16(_) => todo!(),
+            Thumb::RorRegister(ror) => {
+                consume!((s,rd.local_into(), rm.local_into(),rn.local_into()) from ror);
+                local!(shift_n);
+                let mask = (u8::MAX as u32).local_into();
+
+                let mut ret = vec![
+                    Operation::And { destination: shift_n.clone(), operand1: rm.clone(), operand2: mask },
+                    Operation::Sror { destination: rd.clone(), operand: rn.clone(), shift: shift_n.clone() },
+                ];
+                if let Some(true) = s{
+                    ret.extend([
+                        Operation::SetZFlag(rd.clone()),
+                        Operation::SetNFlag(rd.clone()),
+                        Operation::SetCFlagRor(rd.clone())
+                    ]);
+                }
+                ret
+            },
+            Thumb::Rrx(rrx) => {
+                consume!((s,rd.local_into(), rm.local_into()) from rrx);
+                // Let's fulhacka
+                let mask = (u32::MAX >> 1).local_into();
+                let lsb_mask = (1).local_into();
+                local!(lsb,result,msb);
+                let carry = GAOperand::Flag("c".to_owned());
+                let mut ret = Vec::with_capacity(10);
+                pseudo!(
+                    ret.extend[
+                        lsb = rm & lsb_mask;
+                        result = rm >> 1.local_into();
+                        msb = carry << 31.local_into();
+                        // Clear the bit first
+                        result = result & mask;
+                        result = result | msb;
+                        rd = result;
+                    ]
+                );
+
+                if let Some(true) = s {
+                    ret.extend([
+                        Operation::SetNFlag(result.clone()),
+                        Operation::SetZFlag(result.clone()),
+                        Operation::Move { destination: carry, source: lsb }
+                    ]);
+                }
+                ret
+            },
+            Thumb::RsbImmediate(rsb) => {
+                consume!((s,rd,rn,imm.local_into()) from rsb);
+                let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
+                let carry = GAOperand::Flag("c".to_owned());
+                local!(intermediate,old_carry);
+                let one = 1.local_into();
+
+                let mut ret = Vec::with_capacity(10);
+
+                pseudo!(
+                    ret.extend[
+                        // Backup carry bit
+                        old_carry = carry;
+                        // Set carry  bit to 1 
+                        carry = one;
+
+                        intermediate = !rn;
+                        // add with carry
+                        rd = intermediate adc imm;
+                    ]
+                );
+                ret.extend(
+                    match s {
+                        Some(true)  => {
+                            vec![
+                                Operation::SetZFlag(rd.clone()),
+                                Operation::SetNFlag(rd.clone()),
+                                Operation::SetCFlag { operand1: intermediate, operand2: imm, sub: false, carry: true }
+                            ]
+                        }
+                        _ => vec![bin_op!(carry = old_carry)]
+                    }
+                );
+                ret
+            },
+            Thumb::RsbRegister(rsb) => {
+                consume!((s,rd,rn,rm.local_into(), shift) from rsb);
+                let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
+                let mut ret = Vec::with_capacity(10);
+                let carry = GAOperand::Flag("c".to_owned());
+                let one = 1.local_into();
+
+                local!(shifted,intermediate,old_carry);
+                shift!(ret.shift rm -> shifted);
+
+                pseudo!(
+                    ret.extend[
+                        // Backup carry bit
+                        old_carry = carry;
+                        // Set carry  bit to 1 
+                        carry = one;
+
+                        intermediate = !rn;
+
+                        // add with carry
+                        rd = intermediate adc shifted;
+                    ]
+                );
+                ret.extend(
+                    match s {
+                        Some(true)  => {
+                            vec![
+                                Operation::SetZFlag(rd.clone()),
+                                Operation::SetNFlag(rd.clone()),
+                                Operation::SetCFlag { operand1: intermediate, operand2: shifted, sub: false, carry: true }
+                            ]
+                        }
+                        _ => vec![bin_op!(carry = old_carry)]
+                    }
+                );
+
+
+                ret
+            },
+            Thumb::Sadd16(sadd) => {
+                consume!((rn.local_into(),rd.local_into().unwrap_or(rn.clone()),rm.local_into()) from sadd); 
+
+                let mut ret = Vec::with_capacity(20);
+                local!(rn_lsh,rn_msh,rm_lsh,rm_msh,sum1,sum2,ge_lsh,ge_msh);
+                let msh_mask = (!(u16::MAX as u32)).local_into();
+                let lsh_mask = (u16::MAX as u32).local_into();
+                let msh_shift = 16.local_into();
+
+                pseudo!(
+                    ret.extend[
+                        // Field extraction
+                        rn_lsh = rn & lsh_mask;
+                        rn_msh = rn & msh_mask;
+                        rn_msh = rn_msh >> msh_shift;
+
+                        rm_lsh = rm & lsh_mask;
+                        rm_msh = rm & msh_mask;
+                        rm_msh = rm_msh >> msh_shift;
+                        // [rn_lsh = SInt(rn_lsh,16)];
+                    ]
+                );
+                // This is likely incorrect, we should implement some 
+                ret.extend([
+                           Operation::SignExtend { destination: rn_lsh.clone(), operand: rn_lsh.clone(), bits: 16  },
+                           Operation::SignExtend { destination: rn_msh.clone(), operand: rn_msh.clone(), bits: 16 },
+                           Operation::SignExtend { destination: rm_lsh.clone(), operand: rm_lsh.clone(), bits: 16 },
+                           Operation::SignExtend { destination: rm_msh.clone(), operand: rm_msh.clone(), bits: 16 },
+                ]);
+                pseudo!(
+                    ret.extend[
+                        sum1 = rn_lsh + rm_lsh;
+                        sum2 = rn_msh + rm_msh;
+
+                        // Assign 
+                        rd = sum2 << msh_shift;
+                        sum1 = sum1 & lsh_mask;
+                        rd = rd | sum1;
+                    ]
+                );
+                todo!("look in to SInt")
+            },
             Thumb::Sadd8(_) => todo!(),
             Thumb::Sasx(_) => todo!(),
             Thumb::SbcImmediate(_) => todo!(),

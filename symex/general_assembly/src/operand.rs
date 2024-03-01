@@ -1,7 +1,5 @@
 //! Defines all types of operands that are valid in [`GeneralAssembly`]
 
-
-
 #[derive(Debug, Clone, Copy)]
 pub enum DataWord {
     Word64(u64),
