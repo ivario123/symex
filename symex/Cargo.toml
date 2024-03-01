@@ -1,4 +1,4 @@
-workspace = { members = ["general_assembly"] }
+workspace = { members = ["general_assembly","transpiler","transpiler/language"] }
 [package]
 name = "symex"
 version = "0.1.0"

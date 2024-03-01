@@ -1,3 +1,5 @@
+# [workspace]
+# members = []
 [package]
 name = "transpiler"
 version = "0.1.0"
@@ -12,3 +14,4 @@ general_assembly = {path = "../general_assembly"}
 syn = { version = "2.0.49", features = ["full", "extra-traits"] } 
 quote = "1.0.35" 
 proc-macro2 = "1.0.78"
+language = {path="./language"}
