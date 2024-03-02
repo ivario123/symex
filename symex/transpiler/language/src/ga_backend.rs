@@ -32,12 +32,15 @@ impl Compile for (Ident, RustSyntax) {
                 let to_declare_sad: Vec<Ident> = state.to_declare.drain(..).collect();
                 let declaration_strings_sad = to_declare_sad.iter().map(|el| el.to_string());
                 quote!(
-                    #(let #to_declare_global = Operand::Local(#declaration_strings_global.to_owned());)*
+                    #(let #to_declare_global =
+                        Operand::Local(#declaration_strings_global.to_owned());)*
                     if #e {
-                        #(let #to_declare_happy = Operand::Local(#declaration_strings_happy.to_owned());)*
+                        #(let #to_declare_happy =
+                            Operand::Local(#declaration_strings_happy.to_owned());)*
                         #happy_case;
                     } else {
-                        #(let #to_declare_sad = Operand::Local(#declaration_strings_sad.to_owned());)*
+                        #(let #to_declare_sad =
+                            Operand::Local(#declaration_strings_sad.to_owned());)*
                         #sad_case;
                     }
                 )
@@ -50,9 +53,11 @@ impl Compile for (Ident, RustSyntax) {
                 let to_declare_happy: Vec<Ident> = state.to_declare.drain(..).collect();
                 let declaration_strings_happy = to_declare_happy.iter().map(|el| el.to_string());
                 quote!(
-                    #(let #to_declare_global = Operand::Local(#declaration_strings_global.to_owned());)*
+                    #(let #to_declare_global =
+                        Operand::Local(#declaration_strings_global.to_owned());)*
                     if #e {
-                        #(let #to_declare_happy = Operand::Local(#declaration_strings_happy.to_owned());)*
+                        #(let #to_declare_happy =
+                            Operand::Local(#declaration_strings_happy.to_owned());)*
                         #happy_case;
                     }
                 )
@@ -64,9 +69,11 @@ impl Compile for (Ident, RustSyntax) {
                 let to_declare_inner: Vec<Ident> = state.to_declare.drain(..).collect();
                 let declaration_strings_inner = to_declare_inner.iter().map(|el| el.to_string());
                 quote!(
-                    #(let #to_declare_global = Operand::Local(#declaration_strings_global.to_owned());)*
+                    #(let #to_declare_global =
+                        Operand::Local(#declaration_strings_global.to_owned());)*
                     for #i in #e {
-                        #(let #to_declare_inner = Operand::Local(#declaration_strings_inner.to_owned());)*
+                        #(let #to_declare_inner =
+                            Operand::Local(#declaration_strings_inner.to_owned());)*
                         #block
                     }
                 )
@@ -81,14 +88,15 @@ impl Compile for (Ident, RustSyntax) {
                 let to_insert_above: Vec<TokenStream> = state.to_insert_above.drain(..).collect();
                 let declaration_strings = declerations.iter().map(|el| el.to_string());
                 quote!(
-                #(let #declerations = Operand::Local(#declaration_strings.to_owned());)*
+                #(let #declerations =
+                    Operand::Local(#declaration_strings.to_owned());)*
                 #ret.extend([
                     #(#to_insert_above,)*
                     #(#ext,)*
                 ]);
                 )
             }
-            RustSyntax::RustExpr(_) => todo!()
+            RustSyntax::RustExpr(_) => todo!(),
         }
     }
 }
@@ -143,7 +151,10 @@ impl Compile for SignExtend {
         let intermediate = state.intermediate();
         let operand = self.operand.compile(state);
         let bits = self.bits.clone();
-        state.to_insert_above.push(quote!(Operation::SignExtend { destination: #intermediate.clone(), operand: #operand, bits: #bits.clone() }));
+        state.to_insert_above.push(quote!(Operation::SignExtend {
+                destination: #intermediate.clone(),
+                operand: #operand, bits: #bits.clone()
+        }));
         quote!(#intermediate)
     }
 }
@@ -153,7 +164,10 @@ impl Compile for ZeroExtend {
         let intermediate = state.intermediate();
         let operand = self.operand.compile(state);
         let bits = self.bits.clone();
-        state.to_insert_above.push(quote!(Operation::ZeroExtend { destination: #intermediate.clone(), operand: #operand, bits: #bits.clone() }));
+        state.to_insert_above.push(quote!(Operation::ZeroExtend { d
+                estination: #intermediate.clone(),
+                operand: #operand, bits: #bits.clone()
+        }));
         quote!(#intermediate)
     }
 }
@@ -253,37 +267,81 @@ impl Compile for BinOp {
         let lhs: TokenStream = self.lhs.compile(state);
         let ret = match self.op {
             BinaryOperation::Sub => quote!(
-                        Operation::Sub { destination: #dst, operand1: #lhs, operand2: #rhs }
+                        Operation::Sub {
+                            destination: #dst,
+                            operand1: #lhs,
+                            operand2: #rhs
+                        }
             ),
             BinaryOperation::Add => quote!(
-                        Operation::Add { destination: #dst, operand1: #lhs, operand2: #rhs }
+                        Operation::Add {
+                            destination: #dst,
+                            operand1: #lhs,
+                            operand2: #rhs
+                        }
             ),
             BinaryOperation::AddWithCarry => quote!(
-                        Operation::Adc { destination: #dst, operand1: #lhs, operand2: #rhs }
+                        Operation::Adc {
+                            destination: #dst,
+                            operand1: #lhs,
+                            operand2: #rhs
+                        }
             ),
             BinaryOperation::Div => quote!(
-                        Operation::Div { destination: #dst, operand1: #lhs, operand2: #rhs }
+                        Operation::Div {
+                            destination: #dst,
+                            operand1: #lhs,
+                            operand2: #rhs
+                        }
             ),
             BinaryOperation::Mul => quote!(
-                        Operation::Mul { destination: #dst, operand1: #lhs, operand2: #rhs }
+                        Operation::Mul {
+                            destination: #dst,
+                            operand1: #lhs,
+                            operand2: #rhs
+                        }
             ),
             BinaryOperation::BitwiseOr => quote!(
-                        Operation::Or { destination: #dst, operand1: #lhs, operand2: #rhs }
+                        Operation::Or {
+                            destination: #dst,
+                            operand1: #lhs,
+                            operand2: #rhs
+                        }
             ),
             BinaryOperation::BitwiseAnd => quote!(
-                        Operation::And { destination: #dst, operand1: #lhs, operand2: #rhs }
+                        Operation::And {
+                            destination: #dst,
+                            operand1: #lhs,
+                            operand2: #rhs
+                        }
             ),
             BinaryOperation::BitwiseXor => quote!(
-                        Operation::Xor { destination: #dst, operand1: #lhs, operand2: #rhs }
+                        Operation::Xor {
+                            destination: #dst,
+                            operand1: #lhs,
+                            operand2: #rhs
+                        }
             ),
             BinaryOperation::LogicalLeftShift => quote!(
-                        Operation::Sl { destination: #dst, operand: #lhs, shift: #rhs }
+                        Operation::Sl {
+                            destination: #dst,
+                            operand: #lhs,
+                            shift: #rhs
+                        }
             ),
             BinaryOperation::LogicalRightShift => quote!(
-                        Operation::Srl { destination: #dst, operand: #lhs, shift: #rhs }
+                        Operation::Srl {
+                            destination: #dst,
+                            operand: #lhs,
+                            shift: #rhs
+                        }
             ),
             BinaryOperation::ArithmeticRightShift => quote!(
-                        Operation::Sra { destination: #dst, operand: #lhs, shift: #rhs }
+                        Operation::Sra {
+                            destination: #dst,
+                            operand: #lhs,
+                            shift: #rhs
+                        }
             ),
         };
         let to_insert = state.to_insert_above.drain(..);
@@ -322,12 +380,14 @@ impl Into<TokenStream> for IR {
         let declaration_strings = declerations.iter().map(|el| el.to_string());
         match self.ret {
             Some(_) => quote!(
-                #(let #declerations = Operand::Local(#declaration_strings.to_owned());)*
+                #(let #declerations =
+                  Operand::Local(#declaration_strings.to_owned());)*
                 #(#ext;)*
             ),
             None => quote!(
                 let ret =  Vec::new();
-                #(let #declerations = Operand::Local(#declaration_strings.to_owned());)*
+                #(let #declerations =
+                  Operand::Local(#declaration_strings.to_owned());)*
                 #(#ext;)*
             ),
         }

@@ -4,8 +4,8 @@ use crate::{
     arch::Arch,
     general_assembly::{
         instruction::{
-            self, Condition as GACondition, Instruction as GAInstruction, Operand as GAOperand,
-            Operation, Shift as GAShift,
+            self, Condition as GACondition, Instruction as GAInstruction, Operand, Operation,
+            Shift as GAShift,
         },
         translator::Translatable,
     },
@@ -39,17 +39,17 @@ impl sealed::ToString for Register {
     }
 }
 
-impl sealed::Into<GAOperand> for dissarmv7::prelude::Register {
-    fn local_into(self) -> GAOperand {
-        GAOperand::Register(self.to_string())
+impl sealed::Into<Operand> for dissarmv7::prelude::Register {
+    fn local_into(self) -> Operand {
+        Operand::Register(self.to_string())
     }
 }
-impl sealed::Into<Option<GAOperand>> for Option<dissarmv7::prelude::Register> {
-    fn local_into(self) -> Option<GAOperand> {
+impl sealed::Into<Option<Operand>> for Option<dissarmv7::prelude::Register> {
+    fn local_into(self) -> Option<Operand> {
         if self.is_none() {
             return None;
         }
-        Some(GAOperand::Register(self.unwrap().to_string()))
+        Some(Operand::Register(self.unwrap().to_string()))
     }
 }
 impl sealed::Into<GAShift> for Shift {
@@ -65,8 +65,6 @@ impl sealed::Into<GAShift> for Shift {
 }
 macro_rules! consume {
     (($($id:ident$($(.$e:expr)+)?),*) from $name:ident) => {
-
-
         #[allow(unused_parens)]
         let ($($id),*) = {
             paste!(
@@ -135,7 +133,7 @@ macro_rules! backup {
 
             paste!(
                 $(
-                    let [<backup_ $id>] = GAOperand::Local(format!("backup_{}",stringify!($id)));
+                    let [<backup_ $id>] = Operand::Local(format!("backup_{}",stringify!($id)));
                 )*
                 let ret = vec![
                     $(
@@ -152,7 +150,7 @@ macro_rules! backup {
 macro_rules! local {
     ($($id:ident),*) => {
         $(
-            let $id = GAOperand::Local(stringify!($id).to_owned());
+            let $id = Operand::Local(stringify!($id).to_owned());
         )*
     };
 }
@@ -207,61 +205,9 @@ macro_rules! bin_op {
     // }
 }
 
-macro_rules! op  {
-    ($d:ident = $lhs:ident $op:tt $rhs:expr) => {
-        bin_op!($d = $lhs $op $rhs)
-    };
-    ($d:ident = $lhs:ident) => {
-        bin_op!($d = $lhs)
-    };
-    // $($((let $local:ident))?$($d:ident)? = $lhs:ident $($op:tt $rhs:expr)?;)*
-    ($ret:ident.extend[$(
-                op
-                        // need to add some special case syntax for assigns and unary operations
-                        $([$sd:ident = SInt($so:ident,$sn:literal)];)?
-                        $(($source:ident -> $destination:ident);)?
-                        
-                        $([$unop:tt $operand:ident -> $result_unop:ident];)?
-                        $($($defined_d:ident)?$(let $d:ident)? = $lhs:ident $(
-                                $op:tt $rhs:expr
-                            )?;
-                        )?
-                        $( => $chained:expr;)?
-                        
-                    )*]) => {
-        // pseudo!($d = $($lhs_base_case)?$($lhs $op $rhs)?),
-        $(
-            $($ret.push(bin_op!($result_unop = $unop $operand));)?
-            $($ret.push(bin_op!($destination = $source));)?
-            $(
-                $(local!($d);)?
-                $ret.push(bin_op!($($d)?$($defined_d)? = $lhs $($op $rhs)?));
-            )?
-            $($ret.push($chained);)?
-            $(
-                let mask = ($sn).local_into();
-                // local!(intermediate);
-                // This might be incorrect
-                //
-                // TODO! Validate that this is correct
-                pseudo!(
-                    $ret.extend[
-                        let intermediate = $so & mask;
-                        
-                    ]
-
-                );
-                
-
-
-            )?
-        )*
-    };
-}
-
-impl Into<GAOperand> for u32 {
-    fn local_into(self) -> GAOperand {
-        GAOperand::Immidiate(DataWord::Word32(self))
+impl Into<Operand> for u32 {
+    fn local_into(self) -> Operand {
+        Operand::Immidiate(DataWord::Word32(self))
     }
 }
 const fn mask<const START: usize, const END: usize>() -> u32 {
@@ -279,7 +225,7 @@ macro_rules! mask {
 
             paste!(
                 $(
-                    let [<shifted_ $id>] = GAOperand::Local(format!("shifted_{}",stringify!($id)));
+                    let [<shifted_ $id>] = Operand::Local(format!("shifted_{}",stringify!($id)));
                 )*
                 ret.extend([
                     $(
@@ -307,7 +253,7 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::AdcImmediate(adc) => {
                 // Ensure that all fields are used
                 consume!((s,rd,rn,imm) from adc);
-                let (rd, rn, imm): (Option<GAOperand>, GAOperand, GAOperand) =
+                let (rd, rn, imm): (Option<Operand>, Operand, Operand) =
                     (rd.local_into(), rn.local_into(), imm.local_into());
                 let rd = rd.unwrap_or(rn.clone());
                 let (mut ret, backup_rn) = backup!(rn);
@@ -539,25 +485,25 @@ impl Into<Vec<Operation>> for Thumb {
 
                 let mut ret = vec![
                     Operation::Add {
-                        destination: GAOperand::Local("addr".to_owned()),
-                        operand1: GAOperand::Register("PC".to_owned()),
-                        operand2: GAOperand::Immidiate(DataWord::Word32(2)),
+                        destination: Operand::Local("addr".to_owned()),
+                        operand1: Operand::Register("PC".to_owned()),
+                        operand2: Operand::Immidiate(DataWord::Word32(2)),
                     },
                     Operation::And {
-                        destination: GAOperand::Local("addr".to_owned()),
-                        operand1: GAOperand::Local("addr".to_owned()),
-                        operand2: GAOperand::Immidiate(DataWord::Word32(!0b11)),
+                        destination: Operand::Local("addr".to_owned()),
+                        operand1: Operand::Local("addr".to_owned()),
+                        operand2: Operand::Immidiate(DataWord::Word32(!0b11)),
                     },
                 ];
                 ret.push(match add {
                     true => Operation::Add {
                         destination: rd,
-                        operand1: GAOperand::Local("addr".to_owned()),
+                        operand1: Operand::Local("addr".to_owned()),
                         operand2: imm,
                     },
                     false => Operation::Sub {
                         destination: rd,
-                        operand1: GAOperand::Local("addr".to_owned()),
+                        operand1: Operand::Local("addr".to_owned()),
                         operand2: imm,
                     },
                 });
@@ -639,13 +585,13 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::AsrRegister(asr) => {
                 consume!((s,rd,rm,rn) from asr);
                 let (rd, rm, rn) = (rd.local_into(), rm.local_into(), rn.local_into());
-                let intermediate = GAOperand::Local("intermediate".to_owned());
+                let intermediate = Operand::Local("intermediate".to_owned());
                 let mut ret = vec![
                     // Extract 8- least significant bits
                     Operation::And {
                         destination: intermediate.clone(),
                         operand1: rm.clone(),
-                        operand2: GAOperand::Immidiate(DataWord::Word8(u8::MAX)),
+                        operand2: Operand::Immidiate(DataWord::Word8(u8::MAX)),
                     },
                     Operation::Sra {
                         destination: rd.clone(),
@@ -669,7 +615,7 @@ impl Into<Vec<Operation>> for Thumb {
                 consume!((condition,imm) from b);
                 todo!("This needs to be fixed, imm is signed here");
                 let (condition, imm) = (condition.local_into(), imm.local_into());
-                let intermediate = GAOperand::Local("intermediate".to_owned());
+                let intermediate = Operand::Local("intermediate".to_owned());
                 vec![
                     Operation::Move {
                         destination: intermediate.clone(),
@@ -684,12 +630,12 @@ impl Into<Vec<Operation>> for Thumb {
                     Operation::Srl {
                         destination: intermediate.clone(),
                         operand: intermediate.clone(),
-                        shift: GAOperand::Immidiate(DataWord::Word8(0b1)),
+                        shift: Operand::Immidiate(DataWord::Word8(0b1)),
                     },
                     Operation::Sl {
                         destination: intermediate.clone(),
                         operand: intermediate.clone(),
-                        shift: GAOperand::Immidiate(DataWord::Word8(0b1)),
+                        shift: Operand::Immidiate(DataWord::Word8(0b1)),
                     },
                     Operation::ConditionalJump {
                         destination: intermediate,
@@ -704,7 +650,7 @@ impl Into<Vec<Operation>> for Thumb {
                 vec![Operation::And {
                     destination: rd.clone(),
                     operand1: rd,
-                    operand2: GAOperand::Immidiate(DataWord::Word32(mask)),
+                    operand2: Operand::Immidiate(DataWord::Word32(mask)),
                 }]
             }
             Thumb::Bfi(bfi) => {
@@ -712,25 +658,25 @@ impl Into<Vec<Operation>> for Thumb {
                 let (rd, rn) = (rd.local_into(), rn.local_into());
                 let p_mask = mask_dyn(0, msb - lsb);
                 let n_mask = !mask_dyn(lsb, msb);
-                let intermediate = GAOperand::Local("intermediate".to_owned());
+                let intermediate = Operand::Local("intermediate".to_owned());
                 vec![
                     // Clear out the field
                     Operation::And {
                         destination: rd.clone(),
                         operand1: rd.clone(),
-                        operand2: GAOperand::Immidiate(DataWord::Word32(n_mask)),
+                        operand2: Operand::Immidiate(DataWord::Word32(n_mask)),
                     },
                     // Clear out the field
                     Operation::And {
                         destination: intermediate.clone(),
                         operand1: rn,
-                        operand2: GAOperand::Immidiate(DataWord::Word32(p_mask)),
+                        operand2: Operand::Immidiate(DataWord::Word32(p_mask)),
                     },
                     // Align the fields
                     Operation::Sl {
                         destination: intermediate.clone(),
                         operand: intermediate.clone(),
-                        shift: GAOperand::Immidiate(DataWord::Word32(lsb)),
+                        shift: Operand::Immidiate(DataWord::Word32(lsb)),
                     },
                     // Replace the field
                     Operation::Or {
@@ -747,7 +693,7 @@ impl Into<Vec<Operation>> for Thumb {
                     rn.local_into(),
                     imm.local_into(),
                 );
-                let intermediate = GAOperand::Local("intermediate".to_owned());
+                let intermediate = Operand::Local("intermediate".to_owned());
                 let mut ret = vec![
                     Operation::Not {
                         destination: intermediate.clone(),
@@ -800,7 +746,7 @@ impl Into<Vec<Operation>> for Thumb {
                     }
                     None => vec![],
                 };
-                let intermediate = GAOperand::Local("intermediate".to_owned());
+                let intermediate = Operand::Local("intermediate".to_owned());
                 ret.extend([
                     Operation::Not {
                         destination: intermediate.clone(),
@@ -824,7 +770,7 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::Bl(bl) => {
                 let imm = bl.imm;
                 let add = imm >= 0;
-                let target = GAOperand::Local("target".to_owned());
+                let target = Operand::Local("target".to_owned());
                 // 1. Set intermediate
                 let mut ret = match add {
                     true => {
@@ -849,12 +795,12 @@ impl Into<Vec<Operation>> for Thumb {
                     Operation::Srl {
                         destination: target.clone(),
                         operand: target.clone(),
-                        shift: GAOperand::Immidiate(DataWord::Word8(0b1)),
+                        shift: Operand::Immidiate(DataWord::Word8(0b1)),
                     },
                     Operation::Sl {
                         destination: target.clone(),
                         operand: target.clone(),
-                        shift: GAOperand::Immidiate(DataWord::Word8(0b1)),
+                        shift: Operand::Immidiate(DataWord::Word8(0b1)),
                     },
                 ]);
                 // 2. Copy pc in to LR
@@ -867,7 +813,7 @@ impl Into<Vec<Operation>> for Thumb {
                     Operation::Or {
                         destination: Register::LR.local_into(),
                         operand1: Register::LR.local_into(),
-                        operand2: GAOperand::Immidiate(DataWord::Word8(0b1)),
+                        operand2: Operand::Immidiate(DataWord::Word8(0b1)),
                     },
                 ]);
                 // 3. Branch to the new target
@@ -880,10 +826,10 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::Blx(blx) => {
                 consume!((rm) from blx);
                 let rm = rm.local_into();
-                let target = GAOperand::Local("target".to_owned());
-                let ret_addr = GAOperand::Local("ret_addr".to_owned());
-                let intermediate = GAOperand::Local("intermediate".to_owned());
-                let mask_intermediate = GAOperand::Local("mask".to_owned());
+                let target = Operand::Local("target".to_owned());
+                let ret_addr = Operand::Local("ret_addr".to_owned());
+                let intermediate = Operand::Local("intermediate".to_owned());
+                let mask_intermediate = Operand::Local("mask".to_owned());
                 let mut ret = vec![
                     Operation::Move {
                         destination: target.clone(),
@@ -892,13 +838,13 @@ impl Into<Vec<Operation>> for Thumb {
                     Operation::Sub {
                         destination: ret_addr.clone(),
                         operand1: Register::PC.local_into(),
-                        operand2: GAOperand::Immidiate(DataWord::Word8(0b10)),
+                        operand2: Operand::Immidiate(DataWord::Word8(0b10)),
                     },
                     // Set last bit to 1
                     Operation::Or {
                         destination: Register::LR.local_into(),
                         operand1: ret_addr.clone(),
-                        operand2: GAOperand::Immidiate(DataWord::Word8(0b1)),
+                        operand2: Operand::Immidiate(DataWord::Word8(0b1)),
                     },
                     // BLXWritePc https://developer.arm.com/documentation/ddi0419/c/Application-Level-Architecture/Application-Level-Programmers--Model/Registers-and-execution-state/ARM-core-registers
 
@@ -906,7 +852,7 @@ impl Into<Vec<Operation>> for Thumb {
                     Operation::And {
                         destination: intermediate.clone(),
                         operand1: target.clone(),
-                        operand2: GAOperand::Immidiate(DataWord::Word32(1)),
+                        operand2: Operand::Immidiate(DataWord::Word32(1)),
                     },
                     Operation::Sl {
                         destination: intermediate.clone(),
@@ -952,8 +898,8 @@ impl Into<Vec<Operation>> for Thumb {
                 // TODO! Add edge case here for panics
                 let rm = bx.rm.local_into();
                 // Simply implements https://developer.arm.com/documentation/ddi0419/c/Application-Level-Architecture/Application-Level-Programmers--Model/Registers-and-execution-state/ARM-core-registers
-                let intermediate = GAOperand::Local("intermediate".to_owned());
-                let mask_intermediate = GAOperand::Local("mask".to_owned());
+                let intermediate = Operand::Local("intermediate".to_owned());
+                let mask_intermediate = Operand::Local("mask".to_owned());
 
                 vec![
                     // BXWritePc https://developer.arm.com/documentation/ddi0419/c/Application-Level-Architecture/Application-Level-Programmers--Model/Registers-and-execution-state/ARM-core-registers
@@ -962,7 +908,7 @@ impl Into<Vec<Operation>> for Thumb {
                     Operation::And {
                         destination: intermediate.clone(),
                         operand1: rm.clone(),
-                        operand2: GAOperand::Immidiate(DataWord::Word32(1)),
+                        operand2: Operand::Immidiate(DataWord::Word32(1)),
                     },
                     Operation::Sl {
                         destination: intermediate.clone(),
@@ -1005,15 +951,15 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::Cbz(cbz) => {
                 consume!((non, rn,imm) from cbz);
                 let (rn, imm) = (rn.local_into(), imm.local_into());
-                let flag = GAOperand::Flag("z".to_owned());
-                let intermediate = GAOperand::Local("z_intermediate".to_owned());
+                let flag = Operand::Flag("z".to_owned());
+                let intermediate = Operand::Local("z_intermediate".to_owned());
 
                 let condition = match non {
                     Some(true) => Condition::Ne,
                     _ => Condition::Eq,
                 }
                 .local_into();
-                let target = GAOperand::Local("target".to_owned());
+                let target = Operand::Local("target".to_owned());
                 vec![
                     Operation::Move {
                         destination: intermediate.clone(),
@@ -1064,9 +1010,9 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::CmnImmediate(cmn) => {
                 consume!((rn,imm) from cmn);
                 let (rn, imm) = (rn.local_into(), imm.local_into());
-                let flag = GAOperand::Flag("v".to_owned());
-                let intermediate = GAOperand::Local("v_intermediate".to_owned());
-                let result = GAOperand::Local("result".to_owned());
+                let flag = Operand::Flag("v".to_owned());
+                let intermediate = Operand::Local("v_intermediate".to_owned());
+                let result = Operand::Local("result".to_owned());
 
                 vec![
                     Operation::Move {
@@ -1101,7 +1047,7 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::CmnRegister(cmn) => {
                 consume!((rn,rm,shift) from cmn);
                 let (rn, rm) = (rn.local_into(), rm.local_into());
-                let shifted = GAOperand::Local("destination".to_owned());
+                let shifted = Operand::Local("destination".to_owned());
                 let mut ret = match shift {
                     Some(shift) => {
                         let (shift_t, shift_n) = (
@@ -1121,10 +1067,10 @@ impl Into<Vec<Operation>> for Thumb {
                         source: rm.clone(),
                     }],
                 };
-                let result = GAOperand::Local("result".to_owned());
+                let result = Operand::Local("result".to_owned());
                 ret.extend([
                     Operation::Move {
-                        destination: GAOperand::Flag("v".to_owned()),
+                        destination: Operand::Flag("v".to_owned()),
                         source: 0.local_into(),
                     },
                     Operation::Adc {
@@ -1152,10 +1098,10 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::CmpImmediate(cmp) => {
                 consume!((rn,imm) from cmp);
                 let (rn, imm) = (rn.local_into(), imm.local_into());
-                let flag = GAOperand::Flag("v".to_owned());
-                let intermediate = GAOperand::Local("v_intermediate".to_owned());
-                let result = GAOperand::Local("result".to_owned());
-                let imm_intermediate = GAOperand::Local("imm_intermediate".to_owned());
+                let flag = Operand::Flag("v".to_owned());
+                let intermediate = Operand::Local("v_intermediate".to_owned());
+                let result = Operand::Local("result".to_owned());
+                let imm_intermediate = Operand::Local("imm_intermediate".to_owned());
                 vec![
                     Operation::Not {
                         destination: imm_intermediate.clone(),
@@ -1193,7 +1139,7 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::CmpRegister(cmp) => {
                 consume!((rn,rm,shift) from cmp);
                 let (rn, rm) = (rn.local_into(), rm.local_into());
-                let shifted = GAOperand::Local("destination".to_owned());
+                let shifted = Operand::Local("destination".to_owned());
                 let mut ret = match shift {
                     Some(shift) => {
                         let (shift_t, shift_n) = (
@@ -1213,14 +1159,14 @@ impl Into<Vec<Operation>> for Thumb {
                         source: rm.clone(),
                     }],
                 };
-                let result = GAOperand::Local("result".to_owned());
+                let result = Operand::Local("result".to_owned());
                 ret.extend([
                     Operation::Not {
                         destination: shifted.clone(),
                         operand: shifted.clone(),
                     },
                     Operation::Move {
-                        destination: GAOperand::Flag("v".to_owned()),
+                        destination: Operand::Flag("v".to_owned()),
                         source: 1.local_into(),
                     },
                     Operation::Adc {
@@ -1309,7 +1255,7 @@ impl Into<Vec<Operation>> for Thumb {
                     rm.local_into(),
                 );
                 let mut ret = Vec::with_capacity(10);
-                let shifted = GAOperand::Local("destination".to_owned());
+                let shifted = Operand::Local("destination".to_owned());
                 ret.extend(match shift {
                     Some(shift) => {
                         let (shift_t, shift_n) = (
@@ -1339,7 +1285,7 @@ impl Into<Vec<Operation>> for Thumb {
                     // If no shift is applied just move the value in to the register
                     None =>{
                         let mut flag_setter = Operation::Move {
-                            destination: GAOperand::Flag("c".to_owned()),
+                            destination: Operand::Flag("c".to_owned()),
                             source: 0.local_into()
                         };
                         if let Some(true) = s {
@@ -1371,8 +1317,8 @@ impl Into<Vec<Operation>> for Thumb {
                 let rn_old = rn.clone();
                 let rn = rn.local_into();
                 let mut ret = Vec::with_capacity(15);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 32);
                 ret.push(Operation::Move { destination: address_setter.clone(), source: rn.clone() });
                 let mut write_back = w.unwrap_or(false);
                 for register in &registers.regs {
@@ -1399,8 +1345,8 @@ impl Into<Vec<Operation>> for Thumb {
                 let rn_old = rn.clone();
                 let rn = rn.local_into();
                 let mut ret = Vec::with_capacity(15);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 32);
                 ret.push(Operation::Sub { destination: address_setter.clone(), operand1: rn.clone(), operand2: (4*(registers.regs.len() as u32)).local_into() });
                 let mut write_back = w.unwrap_or(false);
                 for register in &registers.regs {
@@ -1427,8 +1373,8 @@ impl Into<Vec<Operation>> for Thumb {
                 let (rt,rn,imm) = (rt.local_into(),rn.local_into(),imm.local_into());
                 let mut ret = Vec::with_capacity(5);
                 local!(offset_addr,data);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 32);
                 match add {
                     true => ret.push(Operation::Add { destination: offset_addr.clone(), operand1: rn.clone(), operand2: imm.clone() }),
                     _ => ret.push(Operation::Sub { destination: offset_addr.clone(), operand1: rn.clone(), operand2: imm.clone() }),
@@ -1456,8 +1402,8 @@ impl Into<Vec<Operation>> for Thumb {
                 let (rt,rn,rm) = (rt.local_into(), rn.local_into(),rm.local_into());
                 let mut ret = Vec::with_capacity(10);
                 local!(offset,offset_addr,data);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(),32);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(),32);
                 ret.push(Operation::Move { destination: offset.clone(), source: rm.clone() });
                 if let Some(shift) = shift{
                     ret.push(Operation::Sl { destination: offset.clone(), operand: offset.clone(), shift: (shift.shift_n as u32).local_into() });
@@ -1480,8 +1426,8 @@ impl Into<Vec<Operation>> for Thumb {
                 let (rt,rn,imm) = (rt.local_into(),rn.local_into(),imm.local_into());
                 let mut ret = Vec::with_capacity(5);
                 local!(offset_addr,data);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 8);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 8);
                 match add {
                     Some(true) => ret.push(Operation::Add { destination: offset_addr.clone(), operand1: rn.clone(), operand2: imm.clone() }),
                     _ => ret.push(Operation::Sub { destination: offset_addr.clone(), operand1: rn.clone(), operand2: imm.clone() }),
@@ -1507,8 +1453,8 @@ impl Into<Vec<Operation>> for Thumb {
                 let (rt,rn,rm) = (rt.local_into(), rn.local_into(),rm.local_into());
                 let mut ret = Vec::with_capacity(10);
                 local!(offset,offset_addr,data);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(),8);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(),8);
                 ret.push(Operation::Move { destination: offset.clone(), source: rm.clone() });
                 if let Some(shift) = shift{
                     ret.push(Operation::Sl { destination: offset.clone(), operand: offset.clone(), shift: (shift.shift_n as u32).local_into() });
@@ -1526,8 +1472,8 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::Ldrbt(ldrbt) => {
                 consume!((rt,rn,imm) from ldrbt);
                 let (rt,rn,imm) = (rt.local_into(),rn.local_into(),imm.unwrap_or(0).local_into());
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(),8);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(),8);
                 vec![
                     Operation::Add { destination: address_setter.clone(), operand1: rn, operand2: imm },
                     Operation::Move { destination: rt.clone(), source: address },
@@ -1536,9 +1482,9 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::LdrdImmediate(ldrd) => {
                 consume!((rt.local_into(),rt2.local_into(),rn.local_into(),imm.local_into(),add,index,w) from ldrd);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 32);
                 let mut ret = Vec::with_capacity(23);
                 
                 match add{
@@ -1564,8 +1510,8 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::LdrdLiteral(ldrd) => {
                 consume!((rt.local_into(),rt2.local_into(),imm.local_into(),add,w,index) from ldrd);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 32);
                 let mut ret = Vec::with_capacity(10);
 
                 match add {
@@ -1588,9 +1534,9 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::Ldrexh(_) => todo!("This is probably not needed"),
             Thumb::LdrhImmediate(ldrh) => {
                 consume!((rt.local_into(),rn.local_into(),imm.local_into(),add,w,index) from ldrh);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 16);
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 16);
                 let mut ret = Vec::with_capacity(4);
                 
                 match add{
@@ -1613,11 +1559,11 @@ impl Into<Vec<Operation>> for Thumb {
             }
             Thumb::LdrhLiteral(ldrh) => {
                 consume!((rt.local_into(),imm.local_into(),add) from ldrh);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 16);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 16);
                 let mut ret = Vec::with_capacity(23);
                 // TODO! Add register hooks for PCA which simply aligns the value
-                ret.push(Operation::Move { destination: address_setter.clone(), source: GAOperand::Register("PCA".to_owned()) });
+                ret.push(Operation::Move { destination: address_setter.clone(), source: Operand::Register("PCA".to_owned()) });
                 
                 ret.push(match add {
                     Some(true) => Operation::Add { destination: address_setter.clone(), operand1: address_setter, operand2: imm },
@@ -1634,10 +1580,10 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::LdrhRegister(ldrh) => {
                 consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrh);
                 let mut ret = Vec::with_capacity(10);
-                let offset = GAOperand::Local("offset".to_owned());
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 16);
+                let offset = Operand::Local("offset".to_owned());
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 16);
                 
                 shift!(ret.shift rm -> offset);
                 
@@ -1653,8 +1599,8 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::Ldrht(ldrht) => {
                 consume!((rt.local_into(),rn.local_into(),imm.unwrap_or(0).local_into()) from ldrht);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 16);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 16);
                 vec![
                     Operation::Add { destination: address_setter.clone(), operand1: rn, operand2: imm },
                     Operation::Move { destination: rt, source: address }
@@ -1663,9 +1609,9 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::LdrsbImmediate(ldrsb) => {
                 consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into(), add, index, wback ) from ldrsb);
                 let mut ret = Vec::with_capacity(10);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 8);
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 8);
                 
                 ret.push(match add {
                     true => Operation::Add { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
@@ -1691,12 +1637,12 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::LdrsbLiteral(ldrsb) => {
                 consume!((rt.local_into(),imm.local_into(),add) from ldrsb);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 8);
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 8);
                 let mut ret = Vec::with_capacity(23);
                 // TODO! Add register hooks for PCA which simply aligns the value
-                ret.push(Operation::Move { destination: offset_address.clone(), source: GAOperand::Register("PCA".to_owned()) });
+                ret.push(Operation::Move { destination: offset_address.clone(), source: Operand::Register("PCA".to_owned()) });
 
                            
                 ret.push(match add {
@@ -1710,10 +1656,10 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::LdrsbRegister(ldrsb) => {
                 consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrsb);
                 let mut ret = Vec::with_capacity(10);
-                let offset = GAOperand::Local("offset".to_owned());
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 8);
+                let offset = Operand::Local("offset".to_owned());
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 8);
                 
                 shift!(ret.shift rm -> offset);
                 
@@ -1729,8 +1675,8 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::Ldrsbt(ldrsbt) => {
                 consume!((rt.local_into(), rn.local_into(), imm.local_into()) from ldrsbt);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 8);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 8);
                 vec![
                     Operation::Add { destination: address_setter, operand1: rn, operand2: imm },
                     Operation::SignExtend { destination: rt, operand: address, bits: 32 }
@@ -1739,9 +1685,9 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::LdrshImmediate(ldrsh) => {
                 consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into(), add, index, wback ) from ldrsh);
                 let mut ret = Vec::with_capacity(10);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 16);
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 16);
                 
                 ret.push(match add {
                     true => Operation::Add { destination: offset_address.clone(), operand1: rn.clone(), operand2: imm },
@@ -1767,12 +1713,12 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::LdrshLiteral(ldrsh) => {
                 consume!((rt.local_into(),imm.local_into(),add) from ldrsh);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 16);
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 16);
                 let mut ret = Vec::with_capacity(23);
                 // TODO! Add register hooks for PCA which simply aligns the value
-                ret.push(Operation::Move { destination: offset_address.clone(), source: GAOperand::Register("PCA".to_owned()) });
+                ret.push(Operation::Move { destination: offset_address.clone(), source: Operand::Register("PCA".to_owned()) });
 
                            
                 ret.push(match add {
@@ -1786,10 +1732,10 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::LdrshRegister(ldrsh) => {
                 consume!((rt.local_into(),rn.local_into(),rm.local_into(),shift) from ldrsh);
                 let mut ret = Vec::with_capacity(10);
-                let offset = GAOperand::Local("offset".to_owned());
-                let address_setter = GAOperand::Local("address".to_owned());
-                let offset_address = GAOperand::Local("offset_address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 16);
+                let offset = Operand::Local("offset".to_owned());
+                let address_setter = Operand::Local("address".to_owned());
+                let offset_address = Operand::Local("offset_address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 16);
                 
                 shift!(ret.shift rm -> offset);
                 
@@ -1805,8 +1751,8 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::Ldrsht(ldrsht) => {
                 consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into()) from ldrsht);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 16);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 16);
                 vec![
                     Operation::Add { destination: address_setter, operand1: rn, operand2: imm },
                     Operation::SignExtend { destination: rt, operand: address, bits: 32 }
@@ -1814,8 +1760,8 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::Ldrt(ldrt) => {
                 consume!((rt.local_into(), rn.local_into(), imm.unwrap_or(0).local_into()) from ldrt);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 32);
                 vec![
                     Operation::Add { destination: address_setter, operand1: rn, operand2: imm },
                     Operation::Move { destination: rt, source: address }
@@ -2048,8 +1994,8 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::Pop(pop) => {
                 consume!((registers) from pop);
 
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 32);
                 let sp = Register::SP.local_into();
                 
                 let mut ret = vec![];
@@ -2061,7 +2007,7 @@ impl Into<Vec<Operation>> for Thumb {
                     ]
                 );
                 let mut pc = false;
-                let regs = registers.regs.iter().map(|reg| {if *reg == Register::PC{pc =true};reg.local_into()}).collect::<Vec<GAOperand>>();
+                let regs = registers.regs.iter().map(|reg| {if *reg == Register::PC{pc =true};reg.local_into()}).collect::<Vec<Operand>>();
                 for reg in regs {
                     pseudo!(
                         ret.extend[
@@ -2078,8 +2024,8 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::Push(push) => {
                 consume!((registers) from push);
-                let address_setter = GAOperand::Local("address".to_owned());
-                let address = GAOperand::AddressInLocal("address".to_owned(), 32);
+                let address_setter = Operand::Local("address".to_owned());
+                let address = Operand::AddressInLocal("address".to_owned(), 32);
                 let sp = Register::SP.local_into();
                 
                 let mut ret = vec![];
@@ -2089,7 +2035,7 @@ impl Into<Vec<Operation>> for Thumb {
                         sp = sp - (4*registers.regs.len() as u32).local_into();
                     ]
                 );
-                let regs = registers.regs.iter().map(|reg| reg.local_into()).collect::<Vec<GAOperand>>();
+                let regs = registers.regs.iter().map(|reg| reg.local_into()).collect::<Vec<Operand>>();
                 for reg in regs {
                     pseudo!(
                         ret.extend[
@@ -2269,7 +2215,7 @@ impl Into<Vec<Operation>> for Thumb {
                 let mask = (u32::MAX >> 1).local_into();
                 let lsb_mask = (1).local_into();
                 local!(lsb,result,msb);
-                let carry = GAOperand::Flag("c".to_owned());
+                let carry = Operand::Flag("c".to_owned());
                 let mut ret = Vec::with_capacity(10);
                 pseudo!(
                     ret.extend[
@@ -2295,7 +2241,7 @@ impl Into<Vec<Operation>> for Thumb {
             Thumb::RsbImmediate(rsb) => {
                 consume!((s,rd,rn,imm.local_into()) from rsb);
                 let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
-                let carry = GAOperand::Flag("c".to_owned());
+                let carry = Operand::Flag("c".to_owned());
                 local!(intermediate,old_carry);
                 let one = 1.local_into();
 
@@ -2331,7 +2277,7 @@ impl Into<Vec<Operation>> for Thumb {
                 consume!((s,rd,rn,rm.local_into(), shift) from rsb);
                 let (rd,rn) = (rd.unwrap_or(rn.clone()).local_into(),rn.local_into());
                 let mut ret = Vec::with_capacity(10);
-                let carry = GAOperand::Flag("c".to_owned());
+                let carry = Operand::Flag("c".to_owned());
                 let one = 1.local_into();
 
                 local!(shifted,intermediate,old_carry);
@@ -2367,7 +2313,11 @@ impl Into<Vec<Operation>> for Thumb {
                 ret
             },
             Thumb::Sadd16(sadd) => {
-                consume!((rn.local_into(),rd.local_into().unwrap_or(rn.clone()),rm.local_into()) from sadd); 
+                consume!((
+                    rn.local_into(),
+                    rd.local_into().unwrap_or(rn.clone()),
+                    rm.local_into()
+                ) from sadd); 
 
                 let mut ret = Vec::with_capacity(20);
                 local!(rn_lsh,rn_msh,rm_lsh,rm_msh,sum1,sum2,ge_lsh,ge_msh);
@@ -2388,7 +2338,7 @@ impl Into<Vec<Operation>> for Thumb {
                         // [rn_lsh = SInt(rn_lsh,16)];
                     ]
                 );
-                // This is likely incorrect, we should implement some 
+                // This is likely incorrect, we should implement some version of SInt 
                 ret.extend([
                            Operation::SignExtend { destination: rn_lsh.clone(), operand: rn_lsh.clone(), bits: 16  },
                            Operation::SignExtend { destination: rn_msh.clone(), operand: rn_msh.clone(), bits: 16 },
@@ -2410,47 +2360,297 @@ impl Into<Vec<Operation>> for Thumb {
             },
             Thumb::Sadd8(_) => todo!(),
             Thumb::Sasx(_) => todo!(),
-            Thumb::SbcImmediate(_) => todo!(),
-            Thumb::SbcRegister(_) => todo!(),
-            Thumb::Sbfx(_) => todo!(),
-            Thumb::Sdiv(_) => todo!(),
-            Thumb::Sel(_) => todo!(),
-            Thumb::Sev(_) => todo!(),
-            Thumb::Shadd16(_) => todo!(),
-            Thumb::Shadd8(_) => todo!(),
-            Thumb::Shasx(_) => todo!(),
-            Thumb::Shsax(_) => todo!(),
-            Thumb::Shsub16(_) => todo!(),
-            Thumb::Shsub8(_) => todo!(),
-            Thumb::Smla(_) => todo!(),
-            Thumb::Smlad(_) => todo!(),
-            Thumb::Smlal(_) => todo!(),
-            Thumb::SmlalSelective(_) => todo!(),
-            Thumb::Smlald(_) => todo!(),
-            Thumb::Smlaw(_) => todo!(),
-            Thumb::Smlsd(_) => todo!(),
-            Thumb::Smlsld(_) => todo!(),
-            Thumb::Smmla(_) => todo!(),
-            Thumb::Smmls(_) => todo!(),
-            Thumb::Smmul(_) => todo!(),
-            Thumb::Smuad(_) => todo!(),
-            Thumb::Smul(_) => todo!(),
-            Thumb::Smull(_) => todo!(),
-            Thumb::Smulw(_) => todo!(),
-            Thumb::Smusd(_) => todo!(),
-            Thumb::Ssat(_) => todo!(),
-            Thumb::Ssat16(_) => todo!(),
-            Thumb::Ssax(_) => todo!(),
-            Thumb::Ssub16(_) => todo!(),
-            Thumb::Ssub8(_) => todo!(),
-            Thumb::Stm(_) => todo!(),
-            Thumb::Stmdb(_) => todo!(),
-            Thumb::StrImmediate(_) => todo!(),
-            Thumb::StrRegister(_) => todo!(),
-            Thumb::StrbImmediate(_) => todo!(),
-            Thumb::StrbRegister(_) => todo!(),
-            Thumb::Strbt(_) => todo!(),
-            Thumb::StrdImmediate(_) => todo!(),
+            Thumb::SbcImmediate(sbc) => {
+                consume!((
+                    s.unwrap_or(false), 
+                    rn.local_into(), 
+                    rd.local_into().unwrap_or(rn.clone()),
+                    imm.local_into()
+                ) from sbc);
+                let mut ret = Vec::with_capacity(7);
+                pseudo!(
+                    ret.extend[
+                        let intermediate = ! imm;
+                        let result = rn adc imm;
+                        rd = result;
+                    ]
+                );
+                if s {
+                    ret.extend([
+                        Operation::SetZFlag(result.clone()),
+                        Operation::SetNFlag(result.clone()),
+                        Operation::SetCFlag { operand1: rn.clone(), operand2: imm.clone(), sub: false, carry: true },
+                        Operation::SetVFlag { operand1: rn.clone(), operand2: imm.clone(), sub: false, carry: true }
+
+                    ]);
+                }
+                ret
+            },
+            Thumb::SbcRegister(sbc) => {
+                consume!((
+                    s.unwrap_or(false),
+                    rn.local_into(),
+                    rd.local_into().unwrap_or(rn.clone()), 
+                    rm.local_into(),
+                    shift
+                ) from sbc);
+                let mut ret = Vec::with_capacity(10);
+                local!(shifted);
+                shift!(ret.shift rm -> shifted);
+                pseudo!(
+                    ret.extend[
+                        let intermediate = !shifted;
+                        let result = rn adc intermediate;
+                        rd = result;
+                    ]
+                );
+                if s{
+                    ret.extend([
+                        Operation::SetZFlag(result.clone()),
+                        Operation::SetNFlag(result.clone()),
+                        Operation::SetCFlag { operand1: rn.clone(), operand2: intermediate.clone(), sub: false, carry: true },
+                        Operation::SetVFlag { operand1: rn.clone(), operand2: intermediate.clone(), sub: false, carry: true }
+                    ]);
+                }
+                ret
+            },
+            Thumb::Sbfx(sbfx) => {
+                consume!((rd.local_into(), rn.local_into(), lsb, width) from sbfx);
+                let mut ret = vec![];
+                
+                let msb = lsb + (width-1);
+                let mask = ((1<<(msb-lsb))-1) << lsb;
+                
+                pseudo!(
+                    ret.extend[
+                        let intermediate = rn & mask.local_into();
+                        intermediate = intermediate >> lsb.local_into();
+                        rd = SignExtend(intermediate,width);
+                    ]
+                );
+                ret
+            },
+            Thumb::Sdiv(_) => todo!("Need to revisit both SInt and div"),
+            Thumb::Sel(_) => todo!("This will likely need a big rewrite as it changes behaviour based on value of flags"),
+            Thumb::Sev(_) => todo!("This is likely not needed"),
+            Thumb::Shadd16(_) => todo!("Need to revisit SInt"),
+            Thumb::Shadd8(_) => todo!("Need to revisit SInt"),
+            Thumb::Shasx(_) => todo!("Need to revisit SInt"),
+            Thumb::Shsax(_) => todo!("Need to reivist SInt"),
+            Thumb::Shsub16(_) => todo!("Need to revisit SInt"),
+            Thumb::Shsub8(_) => todo!("Need to revisit SInt"),
+            Thumb::Smla(_) => todo!("Need to revisit SInt"),
+            Thumb::Smlad(_) => todo!("Need to revisit SInt"),
+            Thumb::Smlal(_) => todo!("Need to revisit SInt"),
+            Thumb::SmlalSelective(_) => todo!("Need to revisit SInt"),
+            Thumb::Smlald(_) => todo!("Need to revisit SInt"),
+            Thumb::Smlaw(_) => todo!("Need to revisit SInt"),
+            Thumb::Smlsd(_) => todo!("Need to revisit SInt"),
+            Thumb::Smlsld(_) => todo!("Need to revisit SInt"),
+            Thumb::Smmla(_) => todo!("Need to revisit SInt"),
+            Thumb::Smmls(_) => todo!("Need to revisit SInt"),
+            Thumb::Smmul(_) => todo!("Need to revisit SInt"),
+            Thumb::Smuad(_) => todo!("Need to revisit SInt"),
+            Thumb::Smul(_) => todo!("Need to revisit SInt"),
+            Thumb::Smull(_) => todo!("Need to revisit SInt"),
+            Thumb::Smulw(_) => todo!("Need to revisit SInt"),
+            Thumb::Smusd(_) => todo!("Need to revisit SInt"),
+            Thumb::Ssat(_) => todo!("Need to revisit SInt"),
+            Thumb::Ssat16(_) => todo!("Need to revisit SInt"),
+            Thumb::Ssax(_) => todo!("Need to revisit SInt"),
+            Thumb::Ssub16(_) => todo!("Need to revisit SInt"),
+            Thumb::Ssub8(_) => todo!("Need to revisit SInt"),
+            Thumb::Stm(stm) => {
+                consume!((rn.local_into(), registers, w.unwrap_or(false)) from stm);
+                let mut ret = vec![];
+                pseudo!(
+                    ret.extend[
+                        let address = rn;
+                    ]
+                );
+                let n = registers.regs.len() as u32;
+                for register in registers.regs{
+                    pseudo!(
+                        ret.extend[
+                            LocalAddress("address",32) = register.local_into();
+                            address = address + 4.local_into();
+                        ]
+                    );
+                }
+                if w {
+                    pseudo!(
+                        ret.extend[
+                            rn = rn + n.local_into();
+                        ]
+                    );
+                }
+                ret
+            },
+            Thumb::Stmdb(stmdb) => {
+                consume!((
+                    w.unwrap_or(false), 
+                    rn.local_into(), 
+                    registers
+                ) from stmdb);
+                let mut ret = vec![];
+                let n = registers.regs.len() as u32;
+                pseudo!(ret.extend[
+                    let address = rn - (4*n).local_into();
+                    for reg in registers.regs{
+                            LocalAddress("address",32) = reg.local_into();
+                            address = address + 4.local_into();
+                    }
+                    if w {
+                        rn = rn - (4u32* n).local_into();
+                    }
+                ]);
+                ret
+
+            },
+            Thumb::StrImmediate(str) => {
+                consume!((
+                    w.unwrap_or(false),
+                    add,
+                    index.unwrap_or(false), 
+                    rt.local_into(),
+                    rn.local_into(), 
+                    imm.local_into()
+                ) from str);
+                let mut ret = Vec::new();
+                pseudo!(
+                    ret.extend[
+
+                        let offset_addr = 0.local_into();
+                        if add {
+                            offset_addr = rn + imm;
+                        } else {
+                            offset_addr = rn - imm;
+                        }
+
+                        let address = 0.local_into();
+                        if index {
+                            address = offset_addr;
+                        } else {
+                            address = rn;
+                        }
+                        
+                        LocalAddress("address",32) = rt;
+                        
+                        if w {
+                            rn = offset_addr;
+                        }
+                    ]
+                );
+                ret
+            },
+            Thumb::StrRegister(str) => {
+                consume!((
+                    rt.local_into(),
+                    rn.local_into(),
+                    rm.local_into(),
+                    shift) from str);
+                let shift_n = (shift.unwrap_or((Shift::Lsl,0).try_into().unwrap()).shift_n as u32 ).local_into();
+                let mut ret = vec![];
+                pseudo!(ret.extend[
+                    // Shift will allways be LSL on the v7
+                    let offset = rm << shift_n;
+                    let address = rn + offset;
+                    LocalAddress("address", 32) = rt;
+                ]);
+                ret
+            },
+            Thumb::StrbImmediate(strb) => {
+                consume!((w.unwrap_or(false),add,index.unwrap_or(false), rt.local_into(),rn.local_into(), imm.local_into()) from strb);
+                let mut ret = Vec::new();
+                pseudo!(
+                    ret.extend[
+
+                        let offset_addr = 0.local_into();
+                        if add {
+                            offset_addr = rn + imm;
+                        } else {
+                            offset_addr = rn - imm;
+                        } f
+
+                        let address = 0.local_into();
+                        if index {
+                            address = offset_addr;
+                        } else {
+                            address = rn;
+                        }
+                        
+                        // TODO! Ensure that this is correct for writing only LS byte
+                        LocalAddress("address",8) = rt;
+                        
+                        if w {
+                            rn = offset_addr;
+                        }
+                    ]
+                );
+                ret
+            },
+            Thumb::StrbRegister(strb) => {
+                consume!((
+                    rt.local_into(),
+                    rn.local_into(),
+                    rm.local_into(),
+                    shift
+                ) from strb);
+                let shift_n = (shift.unwrap_or((Shift::Lsl,0).try_into().unwrap()).shift_n as u32 ).local_into();
+                let mut ret = vec![];
+                pseudo!(ret.extend[
+                    // Shift will allways be LSL on the v7
+                    let offset = rm << shift_n;
+                    let address = rn + offset;
+                    LocalAddress("address", 8) = rt;
+                ]);
+                ret
+            },
+            Thumb::Strbt(strbt) => {
+                consume!((
+                    rt.local_into(),
+                    rn.local_into(),
+                    imm.unwrap_or(0).local_into()
+                ) from strbt);
+                let mut ret =  vec![];
+                pseudo!(
+                    ret.extend[
+                        let address = rn + imm;
+                        LocalAddress("address", 8) = rt;
+                ]);
+
+                ret
+            },
+            Thumb::StrdImmediate(strd) => {
+                consume!((
+                    rt.local_into(), 
+                    rt2.local_into(), 
+                    rn.local_into(),
+                    add.unwrap_or(true),
+                    index.unwrap_or(true),
+                    imm.unwrap_or(0).local_into()
+                ) from strd);
+                let mut ret = vec![];
+                pseudo!(ret.extend[
+                    let offset_addr = rn - imm;
+                    if add {
+                        offset_addr = rn + imm;
+                    }
+
+                    let address = rn;
+                    if index {
+                        address = offset_addr;                    
+                    }
+                    LocalAddress("address",32) = rt;
+                    address = address + 4.local_into();
+                    LocalAddress("address",32) = rt2;
+
+                    if w {
+                        rn = offset_addr;
+                    }
+                ]);
+                ret
+            },
             Thumb::Strex(_) => todo!(),
             Thumb::Strexb(_) => todo!(),
             Thumb::Strexh(_) => todo!(),
@@ -2586,9 +2786,9 @@ pub enum SpecialRegister {
     CONTROL,
     FAULTMASK,
 }
-impl Into<GAOperand> for SpecialRegister {
-    fn local_into(self) -> GAOperand {
-        GAOperand::Register(match self {
+impl Into<Operand> for SpecialRegister {
+    fn local_into(self) -> Operand {
+        Operand::Register(match self {
             SpecialRegister::APSR => "APSR".to_owned(),
             SpecialRegister::IAPSR => "IAPSR".to_owned(),
             SpecialRegister::EAPSR => "EAPSR".to_owned(),

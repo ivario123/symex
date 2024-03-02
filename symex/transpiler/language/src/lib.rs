@@ -2,7 +2,6 @@ use ast::{IRExpr, IdentOperand};
 use quote::format_ident;
 use syn::Ident;
 
-
 pub mod ast;
 pub mod ga_backend;
 pub mod parser;
@@ -26,8 +25,8 @@ impl<T> CompilerState<T> {
             intermediate_counter: 0,
         }
     }
-    fn intermediate(&mut self) -> Ident{
-        let new_ident = format_ident!("intermediate_{}",self.intermediate_counter);
+    fn intermediate(&mut self) -> Ident {
+        let new_ident = format_ident!("intermediate_{}", self.intermediate_counter);
         self.to_declare.push(new_ident.clone());
         self.intermediate_counter += 1;
         new_ident

@@ -14,7 +14,7 @@ pub enum RustSyntax {
     /// TODO! Make this accept full expressions
     If(Ident, Box<RustSyntax>, Option<Box<RustSyntax>>),
     For(Ident, Expr, Box<RustSyntax>),
-    Exprs(Vec<Box<IRExpr>>,),
+    Exprs(Vec<Box<IRExpr>>),
     RustExpr(Expr),
 }
 #[derive(Debug, Clone)]
