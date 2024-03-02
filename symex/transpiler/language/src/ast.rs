@@ -1,17 +1,36 @@
 use syn::{Expr, Ident, Lit};
+pub mod intrinsic;
+use intrinsic::ZeroExtend;
+
+use self::intrinsic::{ConditionalJump, LocalAddress, SetNFlag, SetZFlag, SignExtend};
 
 #[derive(Debug, Clone)]
 pub enum Function {
     Ident(Ident, Vec<Expr>),
-    Intrinsic(Intrinsic),
+    Intrinsic(Box<Intrinsic>),
 }
 #[derive(Debug, Clone)]
-pub enum Intrinsic {}
+pub enum RustSyntax {
+    /// TODO! Make this accept full expressions
+    If(Ident, Box<RustSyntax>, Option<Box<RustSyntax>>),
+    For(Ident, Expr, Box<RustSyntax>),
+    Exprs(Vec<Box<IRExpr>>,),
+    RustExpr(Expr),
+}
+#[derive(Debug, Clone)]
+pub enum Intrinsic {
+    ZeroExtend(ZeroExtend),
+    SignExtend(SignExtend),
+    ConditionalJump(ConditionalJump),
+    SetNFlag(SetNFlag),
+    SetZFlag(SetZFlag),
+    LocalAddress(LocalAddress),
+}
 #[derive(Debug, Clone)]
 pub enum Operand {
     Expr(ExprOperand),
     Ident(IdentOperand),
-    FunctionCall(Box<FunctionCall>),
+    FunctionCall(Box<Function>),
 }
 #[derive(Debug, Clone)]
 pub struct FunctionCall {
@@ -34,18 +53,21 @@ pub struct IdentOperand {
     /// The identifier used
     pub ident: Ident,
 }
+
 #[derive(Debug, Clone)]
 pub enum IRExpr {
     UnOp(UnOp),
     BinOp(BinOp),
     Assign(Assign),
+    Function(Function),
 }
 
 #[derive(Debug, Clone)]
 pub struct IR {
     /// This must be a [`Vec`]
-    pub ret: Ident,
-    pub extensions: Vec<IRExpr>,
+    pub ret: Option<Ident>,
+    // pub extensions: Vec<IRExpr>,
+    pub extensions: Vec<RustSyntax>,
 }
 
 #[derive(Debug, Clone)]

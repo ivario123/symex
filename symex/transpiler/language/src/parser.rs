@@ -1,22 +1,32 @@
+use self::intrinsic::{ConditionalJump, LocalAddress, SetNFlag, SetZFlag, SignExtend, ZeroExtend};
+use crate::ast::*;
 use syn::parse::discouraged::Speculative;
-
 use syn::parse::{Parse, ParseStream};
 use syn::token::{Let, Token};
-use syn::{Expr, Ident, Result, Token};
+use syn::{Expr, Ident, Lit, Result, Token};
 
-use crate::ast::*;
 impl Parse for IR {
     fn parse(input: ParseStream) -> Result<Self> {
         // Expected syntax : ret.extend[ .. ]
-        let ret: Ident = input.parse()?;
-        let _: Token![.] = input.parse()?;
-        let token: Ident = input.parse()?;
-        if token.to_string() != "extend".to_owned() {
-            return Err(input.error("Exptected extend"));
-        }
-        let mut content;
+        let speculative = input.fork();
+        let ret: Option<Ident> = match Ident::parse(&speculative) {
+            Ok(ret) => {
+                input.advance_to(&speculative);
+                let _: Token![.] = input.parse()?;
+                let token: Ident = input.parse()?;
+                if token.to_string() != "extend".to_owned() {
+                    return Err(input.error("Exptected extend"));
+                }
+                Some(ret)
+            }
+            _ => None,
+        };
+        let content;
         syn::bracketed!(content in input);
-        let extensions = content.parse_terminated(IRExpr::parse, syn::token::Semi)?;
+        let mut extensions: Vec<RustSyntax> = vec![];
+        while !content.is_empty() {
+            extensions.push(content.parse()?);
+        }
 
         let ret = Self {
             ret,
@@ -25,31 +35,108 @@ impl Parse for IR {
         Ok(ret)
     }
 }
+impl Parse for RustSyntax {
+    fn parse(input: ParseStream) -> Result<Self> {
+        while !input.is_empty() {
+            if input.peek(Token![if]) {
+                println!("Parsing if");
+                let _: Token![if] = input.parse()?;
+                // Maaaasive limit, this should be expanded in the future
+                let e: Ident = input.parse()?;
+                println!("Found condition {e:?}");
+                let content;
+                syn::braced!(content in input);
+                let happy_case: Box<RustSyntax> = Box::new(content.parse()?);
+                let sad_case = if input.peek(Token![else]) {
+                    let _: Token![else] = input.parse()?;
+                    let content;
+                    syn::braced!(content in input);
+                    Some(Box::new(content.parse()?))
+                } else {
+                    None
+                };
+                return Ok(Self::If(e, happy_case, sad_case));
+            }
+            if input.peek(Token![for]) {
+                let _: Token![for] = input.parse()?;
+                let var: Ident = input.parse()?;
+                let _: Token![in] = input.parse()?;
+                let e: Expr = input.parse()?;
+                let content;
+                syn::braced!(content in input);
+                let block: Box<RustSyntax> = Box::new(content.parse()?);
+                return Ok(Self::For(var, e, block));
+            }
+            let mut ret = vec![];
+            while !input.is_empty() {
+                if input.peek(Token![if]) | input.peek(Token![for]) {
+                    break;
+                }
+                let speculative = input.fork();
+                match speculative.parse() {
+                    Ok(val) => {
+                        input.advance_to(&speculative);
+                        ret.push(val);
+                        let _: syn::token::Semi = input.parse()?;
+                    }
+                    _ => {
+                        break;
+                    }
+                }
+            }
+            return Ok(Self::Exprs(ret));
+        }
+        Err(input.error("Expected either an expression, if statement or a for loop."))
+    }
+}
 
 impl Parse for IRExpr {
     fn parse(input: ParseStream) -> Result<Self> {
+        println!("Parsing {input}");
         let speculative = input.fork();
-
         if let Ok(unop) = speculative.parse() {
             input.advance_to(&speculative);
             return Ok(Self::UnOp(unop));
         }
-        let speculative = input.fork();
 
-        if let Ok(binop) = speculative.parse() {
-            input.advance_to(&speculative);
-            return Ok(Self::BinOp(binop));
+        let speculative = input.fork();
+        if let Ok(assign) = speculative.parse() {
+            let speculative_speculative = speculative.fork();
+            let token = syn::token::Semi::parse(&speculative_speculative);
+            match token {
+                Ok(_) => {
+                    input.advance_to(&speculative);
+                    return Ok(Self::Assign(assign));
+                }
+                _ => {}
+            }
         }
 
-        let assign: Assign = input.parse()?;
-        Ok(Self::Assign(assign))
+        let speculative = input.fork();
+        println!("Parsing function call");
+        if let Ok(func) = speculative.parse() {
+            let speculative_speculative = speculative.fork();
+            let token = syn::token::Semi::parse(&speculative_speculative);
+            match token {
+                Ok(_) => {
+                    input.advance_to(&speculative);
+                    return Ok(Self::Function(func));
+                }
+                _ => {}
+            }
+        }
+
+        let binop: BinOp = input.parse()?;
+        Ok(Self::BinOp(binop))
     }
 }
 impl Parse for Assign {
     fn parse(input: ParseStream) -> Result<Self> {
         let dest: Operand = input.parse()?;
+        println!("Parsed operand : {dest:?}");
         let _: Token![=] = input.parse()?;
         let rhs: Operand = input.parse()?;
+        println!("Parsed rhs : {rhs:?}");
         Ok(Self { dest, rhs })
     }
 }
@@ -59,11 +146,15 @@ impl Parse for UnOp {
         let _: Token![=] = input.parse()?;
         let op: UnaryOperation = input.parse()?;
         let rhs: Operand = input.parse()?;
+        if !input.peek(syn::token::Semi) {
+            return Err(input.error("Expected semi colon"));
+        }
         Ok(Self { dest, op, rhs })
     }
 }
 impl Parse for BinOp {
     fn parse(input: ParseStream) -> Result<Self> {
+        println!("Parsing BinOp");
         let dest: Operand = input.parse()?;
         let _: Token![=] = input.parse()?;
 
@@ -91,7 +182,156 @@ impl Parse for Function {
 }
 impl Parse for Intrinsic {
     fn parse(input: ParseStream) -> Result<Self> {
-        Err(input.error("TODO!( parse intrinsics )"))
+        println!("Parsing intrinsic");
+        let speculative = input.fork();
+        if let Ok(el) = speculative.parse() {
+            input.advance_to(&speculative);
+            return Ok(Self::LocalAddress(el));
+        }
+        println!("Not LocalAddress");
+
+        let speculative = input.fork();
+        if let Ok(el) = speculative.parse() {
+            input.advance_to(&speculative);
+            return Ok(Self::ZeroExtend(el));
+        }
+        let speculative = input.fork();
+        if let Ok(el) = speculative.parse() {
+            input.advance_to(&speculative);
+            return Ok(Self::SignExtend(el));
+        }
+
+        let speculative = input.fork();
+        if let Ok(el) = speculative.parse() {
+            input.advance_to(&speculative);
+            return Ok(Self::ConditionalJump(el));
+        }
+
+        let speculative = input.fork();
+        if let Ok(el) = speculative.parse() {
+            input.advance_to(&speculative);
+            return Ok(Self::SetNFlag(el));
+        }
+        Ok(Self::SetZFlag(input.parse()?))
+    }
+}
+impl Parse for LocalAddress {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let speculative = input.fork();
+        let ident: Ident = speculative.parse()?;
+        if ident.to_string().to_lowercase() != "localaddress".to_owned() {
+            return Err(input.error("localaddress"));
+        }
+        input.advance_to(&speculative);
+        let content;
+        syn::parenthesized!(content in input);
+        let name: Lit = content.parse()?;
+        let _: Token![,] = content.parse()?;
+        let bits: Lit = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("Too many arguments"));
+        }
+        Ok(Self { name, bits })
+    }
+}
+impl Parse for ZeroExtend {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let speculative = input.fork();
+        let ident: Ident = speculative.parse()?;
+        if ident.to_string().to_lowercase() != "zeroextend".to_owned() {
+            return Err(input.error("Expected zeroextend"));
+        }
+        input.advance_to(&speculative);
+        let content;
+        syn::parenthesized!(content in input);
+        let op: Operand = content.parse()?;
+        let _: Token![,] = content.parse()?;
+        let n: Ident = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("Too many arguments"));
+        }
+        Ok(Self {
+            operand: op,
+            bits: n,
+        })
+    }
+}
+impl Parse for SignExtend {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let speculative = input.fork();
+        let ident: Ident = speculative.parse()?;
+        if ident.to_string().to_lowercase() != "signextend".to_owned() {
+            return Err(input.error("Expected signextend"));
+        }
+        input.advance_to(&speculative);
+        let content;
+        syn::parenthesized!(content in input);
+        let op: Operand = content.parse()?;
+        let _: Token![,] = content.parse()?;
+        let n: Ident = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("Too many arguments"));
+        }
+        Ok(Self {
+            operand: op,
+            bits: n,
+        })
+    }
+}
+impl Parse for ConditionalJump {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let speculative = input.fork();
+        let ident: Ident = speculative.parse()?;
+        if ident.to_string().to_lowercase() != "signextend".to_owned() {
+            return Err(input.error("Expected signextend"));
+        }
+        input.advance_to(&speculative);
+        let content;
+        syn::parenthesized!(content in input);
+        let op: Operand = content.parse()?;
+        let _: Token![,] = content.parse()?;
+        let condition: Ident = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("Too many arguments"));
+        }
+        Ok(Self {
+            operand: op,
+            condition,
+        })
+    }
+}
+impl Parse for SetNFlag {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let speculative = input.fork();
+        let ident: Ident = speculative.parse()?;
+        if ident.to_string().to_lowercase() != "setnflag".to_owned() {
+            return Err(input.error("Expected setnflag"));
+        }
+        input.advance_to(&speculative);
+        let content;
+        syn::parenthesized!(content in input);
+        let op: Operand = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("Too many arguments"));
+        }
+        Ok(Self { operand: op })
+    }
+}
+impl Parse for SetZFlag {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let speculative = input.fork();
+        let ident: Ident = speculative.parse()?;
+        if ident.to_string().to_lowercase() != "setzflag".to_owned() {
+            return Err(input.error("Expected setzflag"));
+        }
+        input.advance_to(&speculative);
+        let content;
+        syn::parenthesized!(content in input);
+        let op: Operand = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("Too many arguments"));
+        }
+        Ok(Self { operand: op })
     }
 }
 impl Parse for ExprOperand {
@@ -213,17 +453,17 @@ impl Parse for Operand {
         let speculative = input.fork();
         if let Ok(val) = speculative.parse() {
             input.advance_to(&speculative);
+            return Ok(Self::FunctionCall(val));
+        }
+        let speculative = input.fork();
+        if let Ok(val) = speculative.parse() {
+            input.advance_to(&speculative);
             return Ok(Self::Expr(val));
         }
         let speculative = input.fork();
         if let Ok(val) = speculative.parse() {
             input.advance_to(&speculative);
             return Ok(Self::Ident(val));
-        }
-        let speculative = input.fork();
-        if let Ok(val) = speculative.parse() {
-            input.advance_to(&speculative);
-            return Ok(Self::FunctionCall(val));
         }
         Err(input.error("Expected operand"))
     }
