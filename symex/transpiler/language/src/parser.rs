@@ -39,11 +39,9 @@ impl Parse for RustSyntax {
     fn parse(input: ParseStream) -> Result<Self> {
         while !input.is_empty() {
             if input.peek(Token![if]) {
-                println!("Parsing if");
                 let _: Token![if] = input.parse()?;
                 // Maaaasive limit, this should be expanded in the future
                 let e: Ident = input.parse()?;
-                println!("Found condition {e:?}");
                 let content;
                 syn::braced!(content in input);
                 let happy_case: Box<RustSyntax> = Box::new(content.parse()?);
@@ -92,7 +90,6 @@ impl Parse for RustSyntax {
 
 impl Parse for IRExpr {
     fn parse(input: ParseStream) -> Result<Self> {
-        println!("Parsing {input}");
         let speculative = input.fork();
         if let Ok(unop) = speculative.parse() {
             input.advance_to(&speculative);
@@ -113,7 +110,6 @@ impl Parse for IRExpr {
         }
 
         let speculative = input.fork();
-        println!("Parsing function call");
         if let Ok(func) = speculative.parse() {
             let speculative_speculative = speculative.fork();
             let token = syn::token::Semi::parse(&speculative_speculative);
@@ -133,10 +129,8 @@ impl Parse for IRExpr {
 impl Parse for Assign {
     fn parse(input: ParseStream) -> Result<Self> {
         let dest: Operand = input.parse()?;
-        println!("Parsed operand : {dest:?}");
         let _: Token![=] = input.parse()?;
         let rhs: Operand = input.parse()?;
-        println!("Parsed rhs : {rhs:?}");
         Ok(Self { dest, rhs })
     }
 }
@@ -154,7 +148,6 @@ impl Parse for UnOp {
 }
 impl Parse for BinOp {
     fn parse(input: ParseStream) -> Result<Self> {
-        println!("Parsing BinOp");
         let dest: Operand = input.parse()?;
         let _: Token![=] = input.parse()?;
 
@@ -182,13 +175,11 @@ impl Parse for Function {
 }
 impl Parse for Intrinsic {
     fn parse(input: ParseStream) -> Result<Self> {
-        println!("Parsing intrinsic");
         let speculative = input.fork();
         if let Ok(el) = speculative.parse() {
             input.advance_to(&speculative);
             return Ok(Self::LocalAddress(el));
         }
-        println!("Not LocalAddress");
 
         let speculative = input.fork();
         if let Ok(el) = speculative.parse() {

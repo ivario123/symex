@@ -2622,34 +2622,34 @@ impl Into<Vec<Operation>> for Thumb {
                 ret
             },
             Thumb::StrdImmediate(strd) => {
-                consume!((
-                    rt.local_into(), 
-                    rt2.local_into(), 
-                    rn.local_into(),
-                    add.unwrap_or(true),
-                    index.unwrap_or(true),
-                    imm.unwrap_or(0).local_into()
-                ) from strd);
-                let mut ret = vec![];
-                pseudo!(ret.extend[
-                    let offset_addr = rn - imm;
-                    if add {
-                        offset_addr = rn + imm;
-                    }
-
-                    let address = rn;
-                    if index {
-                        address = offset_addr;                    
-                    }
-                    LocalAddress("address",32) = rt;
-                    address = address + 4.local_into();
-                    LocalAddress("address",32) = rt2;
-
-                    if w {
-                        rn = offset_addr;
-                    }
-                ]);
-                ret
+                // consume!((
+                //     rt.local_into(), 
+                //     rt2.local_into(), 
+                //     rn.local_into(),
+                //     add.unwrap_or(true),
+                //     index.unwrap_or(true),
+                //     imm.unwrap_or(0).local_into()
+                // ) from strd);
+                // let mut ret = vec![];
+                // pseudo!(ret.extend[
+                //     let offset_addr = rn - imm;
+                //     if add {
+                //         offset_addr = rn + imm;
+                //     }
+                //
+                //     let address = rn;
+                //     if index {
+                //         address = offset_addr;                    
+                //     }
+                //     LocalAddress("address",32) = rt;
+                //     address = address + 4.local_into();
+                //     LocalAddress("address",32) = rt2;
+                //
+                //     if w {
+                //         rn = offset_addr;
+                //     }
+                // ]);
+                // ret
             },
             Thumb::Strex(_) => todo!(),
             Thumb::Strexb(_) => todo!(),

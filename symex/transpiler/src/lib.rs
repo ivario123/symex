@@ -10,7 +10,6 @@ use syn::parse_macro_input;
 pub fn pseudo(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as IR);
     let input: proc_macro2::TokenStream = input.into();
-    println!("{input}");
 
     input.into()
 }
