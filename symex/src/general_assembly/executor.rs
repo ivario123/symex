@@ -100,6 +100,7 @@ impl<'vm> GAExecutor<'vm> {
                     }
                 },
             };
+            // println!("Executing instruction: {instruction:?}");
 
             // Add cycles to cycle count
             self.state.increment_cycle_count();
@@ -211,7 +212,10 @@ impl<'vm> GAExecutor<'vm> {
                 offset_reg: _,
                 width: _,
             } => todo!(),
-            Operand::Local(k) => Ok((local.get(k).unwrap()).to_owned()),
+            Operand::Local(k) => {
+                // println!("Trying to get : {operand:?} from \nLocals : {local:?}");
+                Ok((local.get(k).unwrap()).to_owned())
+            },
             Operand::AddressInLocal(local_name, width) => {
                 let address =
                     self.get_operand_value(&Operand::Local(local_name.to_owned()), local)?;
@@ -255,8 +259,7 @@ impl<'vm> GAExecutor<'vm> {
                 local.insert(k.to_owned(), value);
             }
             Operand::Flag(f) => {
-                let intermediate = self.get_dexpr_from_dataword(DataWord::Word8(0b1));
-                self.state.set_flag(f.clone(), value.and(&intermediate));
+                self.state.set_flag(f.clone(), value.resize_unsigned(1));
             }
         }
         Ok(())
@@ -377,6 +380,7 @@ impl<'vm> GAExecutor<'vm> {
         local: &mut HashMap<String, DExpr>,
     ) -> Result<()> {
         trace!("Executing operation: {:?}", operation);
+        // println!("Executing instruction: {operation:?}");
         match operation {
             Operation::Nop => (), // nop so do nothig
             Operation::Move {
@@ -414,6 +418,26 @@ impl<'vm> GAExecutor<'vm> {
                 let op1 = self.get_operand_value(operand1, &local)?;
                 let op2 = self.get_operand_value(operand2, &local)?;
                 let result = op1.mul(&op2);
+                self.set_operand_value(destination, result, local)?;
+            }
+            Operation::UDiv {
+                destination,
+                operand1,
+                operand2,
+            } => {
+                let op1 = self.get_operand_value(operand1, &local)?;
+                let op2 = self.get_operand_value(operand2, &local)?;
+                let result = op1.udiv(&op2);
+                self.set_operand_value(destination, result, local)?;
+            }
+            Operation::SDiv {
+                destination,
+                operand1,
+                operand2,
+            } => {
+                let op1 = self.get_operand_value(operand1, &local)?;
+                let op2 = self.get_operand_value(operand2, &local)?;
+                let result = op1.sdiv(&op2);
                 self.set_operand_value(destination, result, local)?;
             }
             Operation::And {

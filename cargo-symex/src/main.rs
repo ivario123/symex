@@ -20,7 +20,7 @@ use build::{
 use crate::args::Subcommands;
 
 fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    // tracing_subscriber::fmt::init();
 
     match run() {
         Ok(_) => {}
@@ -32,6 +32,9 @@ fn main() -> Result<()> {
 }
 
 fn run() -> Result<()> {
+    env_logger::Builder::new()
+        .filter_level(log::LevelFilter::Trace)
+        .init();
     let mut args = std::env::args().collect::<Vec<_>>();
     debug!("received arguments: {args:?}");
 

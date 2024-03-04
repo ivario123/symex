@@ -279,20 +279,22 @@ impl GAState {
     /// Set the value of a flag.
     pub fn set_flag(&mut self, flag: String, expr: DExpr) {
         trace!("flag {} set to {:?}", flag, expr);
+        expr.resize_unsigned(1);
         self.flags.insert(flag, expr);
     }
 
     /// Get the value of a flag.
     pub fn get_flag(&mut self, flag: &String) -> DExpr {
+        println!("Getting flag");
         match self.flags.get(flag) {
             Some(v) => v.to_owned(),
             None => {
                 // If flag do not exist yet create it with unconstrained value.
-                let value = self.ctx.unconstrained(self.project.get_word_size(), &flag);
+                let value = self.ctx.unconstrained(1, &flag);
                 self.marked_symbolic.push(Variable {
                     name: Some(flag.to_owned()),
                     value: value.clone(),
-                    ty: ExpressionType::Integer(self.project.get_word_size() as usize),
+                    ty: ExpressionType::Integer(1),
                 });
                 self.set_flag(flag.to_owned(), value.to_owned());
                 value

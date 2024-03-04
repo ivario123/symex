@@ -33,14 +33,19 @@ pub enum ArchError {
 pub enum ParseError {
     /// Input not long enough for an instruction.
     InsufficientInput,
+
     /// 32 bit instruction not long enough.
     MalfromedInstruction,
+
     /// Opcode not matching valid 32 bit instruction.
     InvalidInstruction,
+
     /// This instruction causes unpredictable behaviour.
     Unpredictable,
+
     /// Trying to access an invalid register.
     InvalidRegister,
+
     /// Invalid condition code used.
     InvalidCondition,
 }
