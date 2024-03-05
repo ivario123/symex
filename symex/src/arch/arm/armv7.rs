@@ -7,7 +7,7 @@ use crate::general_assembly::state::GAState;
 use crate::general_assembly::translator::Translatable;
 
 use dissarmv7::decoder::*;
-use dissarmv7::prelude::*;
+use dissarmv7::{prelude::*,ParseSingle};
 use regex::Regex;
 
 /// Type level denotation for the Armv7-EM ISA.
@@ -61,15 +61,14 @@ impl Arch for ArmV7EM {
     fn translate(&self, buff: &'static [u8]) -> Result<Instruction, ArchError> {
         let mut buff: dissarmv7::buffer::PeekableBuffer<u8, _> =
             buff.iter().cloned().to_owned().into();
-        let instr = dissarmv7::ASM::parse_exact::<_, 1>(&mut buff)
+        let instr = Thumb::parse_single(&mut buff)
             .map_err(|e| ArchError::ParsingError(e.into()))?;
 
         println!("{:?}", instr);
-        let instrs: Vec<Thumb> = instr.into();
-        let ops: Vec<Operation> = instrs[0].clone().convert();
+        let ops: Vec<Operation> = instr.1.convert();
         println!("Ops : {ops:?}");
         Ok(Instruction {
-            instruction_size: 16,
+            instruction_size: instr.0 as u32,
             operations: ops,
             max_cycle: CycleCount::Value(1),
         })

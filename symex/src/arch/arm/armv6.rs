@@ -7,7 +7,7 @@ use crate::{
     },
 };
 use armv6_m_instruction_parser::Error;
-use dissarmv7::prelude::*;
+use dissarmv7::{decoder::Convert, prelude::*, ParseSingle};
 
 /// Type level denotation for the
 /// [Armv6-M](https://developer.arm.com/documentation/ddi0419/latest/) ISA.
@@ -24,9 +24,14 @@ impl Arch for ArmV6M {
         let mut buff: dissarmv7::buffer::PeekableBuffer<u8, _> =
             b2.iter().cloned().to_owned().into();
 
-        let instr = dissarmv7::ASM::parse_exact::<_, 1>(&mut buff);
+        let instr: (usize,Thumb) = Thumb::parse_single(&mut buff)
+            .unwrap();
         println!("{ret:?}, {instr:?}");
-        Ok(ret.translate())
+        let mut to_exec = ret.translate();
+        println!("Erics : {:?}",to_exec.operations);
+        // to_exec.operations = instr[0].clone().convert();
+        // println!("Mine : {:?}",to_exec.operations);
+        Ok(to_exec)
     }
 }
 

@@ -22,6 +22,7 @@
 //! ```
 #![allow(dead_code)]
 use symex_lib::{assume, symbolic};
+use core::iter::Iterator;
 
 const ARRAY_SIZE: usize = 3;
 

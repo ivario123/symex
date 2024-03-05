@@ -174,6 +174,8 @@ impl<'vm> GAExecutor<'vm> {
     /// Sets the memory at `address` to `data`.
     fn set_memory(&mut self, data: DExpr, address: u64, bits: u32) -> Result<()> {
         trace!("Setting memmory addr: {:?}", address);
+        println!("Setting memmory addr: {:?}", address);
+        println!("Memmory : {:?}",self.state.memory);
         // check for hook and return early
         if let Some(hook) = self.project.get_memory_write_hook(address) {
             return hook(&mut self.state, address, data, bits);
@@ -266,11 +268,13 @@ impl<'vm> GAExecutor<'vm> {
     }
 
     fn resolve_address(&mut self, address: DExpr, local: &HashMap<String, DExpr>) -> Result<u64> {
+        println!("Resolving {address:?}");
         match &address.get_constant() {
             Some(addr) => Ok(*addr),
             None => {
                 // find all possible addresses
                 let addresses = self.state.constraints.get_values(&address, 255)?;
+                println!("Resolving {address:?}");
 
                 let addresses = match addresses {
                     crate::smt::Solutions::Exactly(a) => Ok(a),
@@ -380,6 +384,7 @@ impl<'vm> GAExecutor<'vm> {
         local: &mut HashMap<String, DExpr>,
     ) -> Result<()> {
         trace!("Executing operation: {:?}", operation);
+        println!("PC : {:?}",self.state.get_register("PC".to_owned()));
         // println!("Executing instruction: {operation:?}");
         match operation {
             Operation::Nop => (), // nop so do nothig
@@ -545,8 +550,10 @@ impl<'vm> GAExecutor<'vm> {
                 condition,
             } => {
                 let dest_value = self.get_operand_value(destination, &local)?;
+                // println!("Dest value : {:?}",dest_value);
                 let c = self.state.get_expr(condition)?.simplify();
                 trace!("conditional expr: {:?}", c);
+                // println!("conditional expr: {:?}", c);
 
                 // if constant just jump
                 if let Some(constant_c) = c.get_constant_bool() {
@@ -554,6 +561,7 @@ impl<'vm> GAExecutor<'vm> {
                         self.state.set_has_jumped();
                         let destination = dest_value;
                         self.state.set_register("PC".to_owned(), destination)?;
+                        // println!("NEW PC : {:?}",self.state.get_register("PC".to_owned()).unwrap());
                     }
                     return Ok(());
                 }
@@ -565,6 +573,11 @@ impl<'vm> GAExecutor<'vm> {
                     true_possible,
                     false_possible
                 );
+                // println!(
+                //     "true possible: {} false possible: {}",
+                //     true_possible,
+                //     false_possible
+                // );
 
                 let destination: DExpr = match (true_possible, false_possible) {
                     (true, true) => {

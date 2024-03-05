@@ -217,6 +217,7 @@ impl GAState {
     pub fn set_register(&mut self, register: String, expr: DExpr) -> Result<()> {
         // crude solution should prbobly change
         if register == "PC" {
+            println!("Trying to set PC = {expr:?}");
             let value = match expr.get_constant() {
                 Some(v) => v,
                 None => {
