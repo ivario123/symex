@@ -19,18 +19,8 @@ impl Arch for ArmV6M {
         armv6_m_instruction_parser::instructons::Instruction::add_hooks(cfg)
     }
     fn translate(&self, buff: &[u8]) -> Result<Instruction, ArchError> {
-        let b2 = buff.clone();
         let ret = armv6_m_instruction_parser::parse(buff).map_err(|e| e.into())?;
-        let mut buff: dissarmv7::buffer::PeekableBuffer<u8, _> =
-            b2.iter().cloned().to_owned().into();
-
-        let instr: (usize,Thumb) = Thumb::parse_single(&mut buff)
-            .unwrap();
-        println!("{ret:?}, {instr:?}");
         let mut to_exec = ret.translate();
-        println!("Erics : {:?}",to_exec.operations);
-        // to_exec.operations = instr[0].clone().convert();
-        // println!("Mine : {:?}",to_exec.operations);
         Ok(to_exec)
     }
 }

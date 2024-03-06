@@ -174,8 +174,6 @@ impl<'vm> GAExecutor<'vm> {
     /// Sets the memory at `address` to `data`.
     fn set_memory(&mut self, data: DExpr, address: u64, bits: u32) -> Result<()> {
         trace!("Setting memmory addr: {:?}", address);
-        println!("Setting memmory addr: {:?}", address);
-        println!("Memmory : {:?}",self.state.memory);
         // check for hook and return early
         if let Some(hook) = self.project.get_memory_write_hook(address) {
             return hook(&mut self.state, address, data, bits);
@@ -215,9 +213,8 @@ impl<'vm> GAExecutor<'vm> {
                 width: _,
             } => todo!(),
             Operand::Local(k) => {
-                // println!("Trying to get : {operand:?} from \nLocals : {local:?}");
                 Ok((local.get(k).unwrap()).to_owned())
-            },
+            }
             Operand::AddressInLocal(local_name, width) => {
                 let address =
                     self.get_operand_value(&Operand::Local(local_name.to_owned()), local)?;
@@ -268,13 +265,11 @@ impl<'vm> GAExecutor<'vm> {
     }
 
     fn resolve_address(&mut self, address: DExpr, local: &HashMap<String, DExpr>) -> Result<u64> {
-        println!("Resolving {address:?}");
         match &address.get_constant() {
             Some(addr) => Ok(*addr),
             None => {
                 // find all possible addresses
                 let addresses = self.state.constraints.get_values(&address, 255)?;
-                println!("Resolving {address:?}");
 
                 let addresses = match addresses {
                     crate::smt::Solutions::Exactly(a) => Ok(a),
@@ -365,13 +360,32 @@ impl<'vm> GAExecutor<'vm> {
 
         self.state.current_instruction = Some(i.to_owned());
 
-        // initiate local variable storage
-        let mut local: HashMap<String, DExpr> = HashMap::new();
-        // TODO! :  Include conditionals here, also allow for branching within the block, ie. jump
-        // to sepecific instruction
-        for (n, operation) in i.operations.iter().enumerate() {
-            self.current_operation_index = n;
-            self.executer_operation(operation, &mut local)?;
+        // check if we should actually execute the instruction
+        let should_run = match self.state.get_next_instruction_condition_expression() {
+            Some(c) => match c.get_constant_bool() {
+                Some(constant_c) => constant_c,
+                None => {
+                    let true_possible = self.state.constraints.is_sat_with_constraint(&c)?;
+                    let false_possible = self.state.constraints.is_sat_with_constraint(&c.not())?;
+
+                    if true_possible && false_possible {
+                        self.fork(c.not())?;
+                        self.state.constraints.assert(&c);
+                    }
+
+                    true_possible
+                }
+            },
+            None => true,
+        };
+
+        if should_run {
+            // initiate local variable storage
+            let mut local: HashMap<String, DExpr> = HashMap::new();
+            for (n, operation) in i.operations.iter().enumerate() {
+                self.current_operation_index = n;
+                self.executer_operation(operation, &mut local)?;
+            }
         }
 
         Ok(())
@@ -384,7 +398,6 @@ impl<'vm> GAExecutor<'vm> {
         local: &mut HashMap<String, DExpr>,
     ) -> Result<()> {
         trace!("Executing operation: {:?}", operation);
-        println!("PC : {:?}",self.state.get_register("PC".to_owned()));
         // println!("Executing instruction: {operation:?}");
         match operation {
             Operation::Nop => (), // nop so do nothig
@@ -405,6 +418,16 @@ impl<'vm> GAExecutor<'vm> {
                 let result = op1.add(&op2);
                 self.set_operand_value(destination, result, local)?;
             }
+            Operation::SAdd {
+                destination,
+                operand1,
+                operand2,
+            } => {
+                let op1 = self.get_operand_value(operand1, &local)?;
+                let op2 = self.get_operand_value(operand2, &local)?;
+                let result = op1.saddo(&op2);
+                self.set_operand_value(destination, result, local)?;
+            }
             Operation::Sub {
                 destination,
                 operand1,
@@ -413,6 +436,16 @@ impl<'vm> GAExecutor<'vm> {
                 let op1 = self.get_operand_value(operand1, &local)?;
                 let op2 = self.get_operand_value(operand2, &local)?;
                 let result = op1.sub(&op2);
+                self.set_operand_value(destination, result, local)?;
+            }
+            Operation::SSub {
+                destination,
+                operand1,
+                operand2,
+            } => {
+                let op1 = self.get_operand_value(operand1, &local)?;
+                let op2 = self.get_operand_value(operand2, &local)?;
+                let result = op1.ssubo(&op2);
                 self.set_operand_value(destination, result, local)?;
             }
             Operation::Mul {
@@ -864,6 +897,9 @@ impl<'vm> GAExecutor<'vm> {
                     .unconstrained(self.project.get_word_size(), name);
                 self.set_operand_value(destination, value, local)?;
             }
+            Operation::ConditionalExecution { conditions } => {
+                self.state.add_instruction_conditions(conditions);
+            }
         }
         Ok(())
     }
@@ -900,10 +936,11 @@ mod test {
             project::Project,
             state::GAState,
             vm::VM,
-            DataWord, Endianness, WordSize,
+            Endianness, WordSize,
         },
         smt::{DContext, DSolver},
     };
+    use general_assembly::operand::*;
 
     #[test]
     fn test_add_with_carry() {

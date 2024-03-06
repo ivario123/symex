@@ -42,7 +42,7 @@ fn measure_symex() {
 #[no_mangle]
 //#[link_section = ".ram_code"]
 fn nop_loop() {
-    for _ in 0..10000 {
+    for _ in 0..100 {
         unsafe {
             asm!("nop");
         }
