@@ -15,7 +15,9 @@ use regex::Regex;
 
 #[rustfmt::skip]
 pub mod decoder;
+pub mod compare;
 pub mod timing;
+use compare::LocalEq;
 
 /// Type level denotation for the Armv7-EM ISA.
 #[derive(Debug)]
@@ -89,11 +91,23 @@ impl Arch for ArmV7EM {
     }
 
     fn translate(&self, buff: &[u8], state: &GAState) -> Result<Instruction, ArchError> {
+        let buff2 = buff;
+        let v6_instr = armv6_m_instruction_parser::parse(buff2);
+
         let mut buff: disarmv7::buffer::PeekableBuffer<u8, _> = buff.iter().cloned().into();
+
         let instr = V7Operation::parse(&mut buff).map_err(|e| ArchError::ParsingError(e.into()))?;
         let timing = Self::cycle_count_m4_core(&instr.1);
-        // println!("instr : {instr:?} takes @ {timing:?}");
+        println!("instr : {instr:?}");
         let ops: Vec<Operation> = instr.clone().convert(state.get_in_conditional_block());
+
+        match v6_instr {
+            Ok(v6) => {
+                v6.equal(&instr);
+            }
+            _ => {}
+        }
+
         Ok(Instruction {
             instruction_size: instr.0 as u32,
             operations: ops,

@@ -112,9 +112,13 @@ impl<'vm> GAExecutor<'vm> {
     // Fork execution. Will create a new path with `constraint`.
     fn fork(&mut self, constraint: DExpr) -> Result<()> {
         trace!("Save backtracking path: constraint={:?}", constraint);
-        println!("Mutliple paths detected at :{:?}",self.state.get_register("PC".to_owned()).unwrap());
-        println!("SP :{:?}",self.state.get_register("SP".to_owned()).unwrap());
-        println!("Save backtracking path: constraint={:?}", constraint);
+        println!(
+            "Mutliple paths detected at :{:?}\nwith constraint {:?}",
+            self.state.get_register("PC".to_owned()).unwrap(),
+            constraint
+        );
+        // println!("SP :{:?}",self.state.get_register("SP".to_owned()).unwrap());
+        // println!("Save backtracking path: constraint={:?}", constraint);
         let forked_state = self.state.clone();
         let path = Path::new(forked_state, Some(constraint));
 
@@ -347,6 +351,7 @@ impl<'vm> GAExecutor<'vm> {
         // update last pc
         let new_pc = self.state.get_register("PC".to_owned())?;
         self.state.last_pc = new_pc.get_constant().unwrap();
+        println!("PC : {:#04X}", self.state.last_pc & (!0b1));
 
         // Always increment pc before executing the operations
         self.state.set_register(
@@ -412,7 +417,7 @@ impl<'vm> GAExecutor<'vm> {
                 destination,
                 source,
             } => {
-                let value = self.get_operand_value(source, local)?;
+                let value = self.get_operand_value(source, local)?.simplify();
                 self.set_operand_value(destination, value.clone(), local)?;
             }
             Operation::Add {
@@ -1584,7 +1589,7 @@ mod test {
                 instruction_size: 32,
                 operations: vec![Operation::SetZFlag(imm_0.clone())],
                 max_cycle: CycleCount::Value(0),
-                memory_access:false,
+                memory_access: false,
             },
             Instruction {
                 instruction_size: 32,
@@ -1610,7 +1615,7 @@ mod test {
                     source: imm_0,
                 }],
                 max_cycle: CycleCount::Value(0),
-                memory_access: false
+                memory_access: false,
             },
         ];
 

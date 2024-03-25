@@ -72,7 +72,7 @@ impl Arch for ArmV6M {
     }
     fn translate(&self, buff: &[u8], _state: &GAState) -> Result<Instruction, ArchError> {
         let ret = armv6_m_instruction_parser::parse(buff).map_err(map_err)?;
-        // println!("Instr : {ret:?}");
+        println!("Instr : {ret:?}");
         let to_exec = Self::expand(ret);
         Ok(to_exec)
     }
