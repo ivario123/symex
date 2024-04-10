@@ -183,6 +183,34 @@ impl Project {
         }
     }
 
+    #[cfg(test)]
+    pub fn add_hooks(&mut self) {
+        let mut cfg = RunConfig {
+            memory_read_hooks: Vec::new(),
+            memory_write_hooks: Vec::new(),
+            pc_hooks: Vec::new(),
+            register_read_hooks: Vec::new(),
+            register_write_hooks: Vec::new(),
+            show_path_results: false,
+        };
+        self.architecture.add_hooks(&mut cfg);
+
+        let reg_read_hooks = construct_register_read_hooks(cfg.register_read_hooks.clone());
+        let reg_write_hooks = construct_register_write_hooks(cfg.register_write_hooks.clone());
+
+        let (single_memory_write_hooks, range_memory_write_hooks) =
+            construct_memory_write(cfg.memory_write_hooks.clone());
+        let (single_memory_read_hooks, range_memory_read_hooks) =
+            construct_memory_read_hooks(cfg.memory_read_hooks.clone());
+
+        self.reg_read_hooks = reg_read_hooks;
+        self.reg_write_hooks = reg_write_hooks;
+        self.single_memory_read_hooks = single_memory_read_hooks;
+        self.range_memory_read_hooks = range_memory_read_hooks;
+        self.single_memory_write_hooks = single_memory_write_hooks;
+        self.range_memory_write_hooks = range_memory_write_hooks;
+    }
+
     pub fn from_path(path: &str, cfg: &mut RunConfig) -> Result<Self> {
         debug!("Parsing elf file: {}", path);
         let file = fs::read(path).expect("Unable to open file.");

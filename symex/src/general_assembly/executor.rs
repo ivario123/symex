@@ -235,7 +235,7 @@ impl<'vm> GAExecutor<'vm> {
     }
 
     /// Sets what the operand represents to `value`.
-    fn set_operand_value(
+    pub(crate) fn set_operand_value(
         &mut self,
         operand: &Operand,
         value: DExpr,
@@ -409,7 +409,7 @@ impl<'vm> GAExecutor<'vm> {
     }
 
     /// Execute a single operation or all operations contained inside a operation.
-    fn execute_operation(
+    pub(crate) fn execute_operation(
         &mut self,
         operation: &Operation,
         local: &mut HashMap<String, DExpr>,
