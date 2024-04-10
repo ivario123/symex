@@ -16,6 +16,8 @@ use regex::Regex;
 #[rustfmt::skip]
 pub mod decoder;
 pub mod compare;
+#[cfg(test)]
+pub mod test;
 pub mod timing;
 use compare::LocalEq;
 
@@ -98,7 +100,7 @@ impl Arch for ArmV7EM {
 
         let instr = V7Operation::parse(&mut buff).map_err(|e| ArchError::ParsingError(e.into()))?;
         let timing = Self::cycle_count_m4_core(&instr.1);
-        println!("instr : {instr:?}");
+        println!("Instr : {instr:?}");
         let ops: Vec<Operation> = instr.clone().convert(state.get_in_conditional_block());
 
         match v6_instr {

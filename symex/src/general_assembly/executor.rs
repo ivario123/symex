@@ -112,11 +112,11 @@ impl<'vm> GAExecutor<'vm> {
     // Fork execution. Will create a new path with `constraint`.
     fn fork(&mut self, constraint: DExpr) -> Result<()> {
         trace!("Save backtracking path: constraint={:?}", constraint);
-        println!(
-            "Mutliple paths detected at :{:?}\nwith constraint {:?}",
-            self.state.get_register("PC".to_owned()).unwrap(),
-            constraint
-        );
+        // println!(
+        // "Mutliple paths detected at :{:?}\nwith constraint {:?}",
+        // self.state.get_register("PC".to_owned()).unwrap(),
+        // constraint
+        // );
         // println!("SP :{:?}",self.state.get_register("SP".to_owned()).unwrap());
         // println!("Save backtracking path: constraint={:?}", constraint);
         let forked_state = self.state.clone();
@@ -193,12 +193,12 @@ impl<'vm> GAExecutor<'vm> {
     }
 
     /// Get the smt expression for a operand.
-    fn get_operand_value(
+    pub(crate) fn get_operand_value(
         &mut self,
         operand: &Operand,
         local: &HashMap<String, DExpr>,
     ) -> Result<DExpr> {
-        match operand {
+        let ret = match operand {
             Operand::Register(name) => Ok(self.state.get_register(name.to_owned())?),
             Operand::Immidiate(v) => Ok(self.get_dexpr_from_dataword(v.to_owned())),
             Operand::Address(address, width) => {
@@ -218,7 +218,7 @@ impl<'vm> GAExecutor<'vm> {
                 let address = self.resolve_address(address, local)?;
                 let ret = self.get_memory(address, *width);
 
-                // println!("Read {ret:?} from address {address:?}");
+                println!("Read {ret:?} from address {address:?}");
                 ret
             }
             Operand::Flag(f) => {
@@ -228,7 +228,10 @@ impl<'vm> GAExecutor<'vm> {
                     None => todo!(),
                 }
             }
-        }
+        };
+
+        println!("{operand:?} -> {ret:?}");
+        ret
     }
 
     /// Sets what the operand represents to `value`.
@@ -238,6 +241,7 @@ impl<'vm> GAExecutor<'vm> {
         value: DExpr,
         local: &mut HashMap<String, DExpr>,
     ) -> Result<()> {
+        println!("Setting operand {operand:?} = {value:?}");
         match operand {
             Operand::Register(v) => {
                 trace!("Setting register {} to {:?}", v, value);
@@ -249,7 +253,7 @@ impl<'vm> GAExecutor<'vm> {
                     self.get_operand_value(&Operand::Local(local_name.to_owned()), local)?;
                 let address = self.resolve_address(address, local)?;
                 self.set_memory(value.clone(), address, *width)?;
-                // println!("Wrote {value:?} to address {address:?}");
+                println!("Wrote {value:?} to address {address:?}");
             }
             Operand::Address(address, width) => {
                 let address = self.get_dexpr_from_dataword(*address);
@@ -347,7 +351,7 @@ impl<'vm> GAExecutor<'vm> {
     }
 
     /// Execute a single instruction.
-    fn execute_instruction(&mut self, i: &Instruction) -> Result<()> {
+    pub(crate) fn execute_instruction(&mut self, i: &Instruction) -> Result<()> {
         // update last pc
         let new_pc = self.state.get_register("PC".to_owned())?;
         self.state.last_pc = new_pc.get_constant().unwrap();
