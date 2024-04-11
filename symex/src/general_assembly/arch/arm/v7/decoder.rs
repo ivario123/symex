@@ -475,7 +475,12 @@ impl Convert for (usize, V7Operation) {
                     let mut ret = vec![];
                     local!(shifted);
 
-                    shift!(ret.shift rm -> shifted set c for shifted);
+                    if s {
+                        shift!(ret.shift rm -> shifted set c for rm);
+                    }
+                    else {
+                        shift!(ret.shift rm -> shifted);
+                    }
 
                     pseudo!(ret.extend[
                        let result = !shifted;

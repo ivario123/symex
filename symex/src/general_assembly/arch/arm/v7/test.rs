@@ -1975,7 +1975,7 @@ fn test_bfi_panic() {
 }
 
 #[test]
-fn test_bic() {
+fn test_bic_imm() {
     let mut vm = setup_test_vm();
     let project = vm.project;
 
@@ -1985,7 +1985,7 @@ fn test_bic() {
         register PC = 0;
         register R1 = 0x80010003;
         register R2 = 12;
-        flag C = true
+        flag C = false
     });
 
     let instruction: Operation = BicImmediate::builder()
@@ -2009,7 +2009,199 @@ fn test_bic() {
         .expect("Malformed instruction");
 
     test!(executor {
-        register R1 == 0b10000000000000010000000000000001
+        register R1 == 0x80010001,
+        flag C == 0
+    });
+}
 
+#[test]
+fn test_bic_imm_set_flags() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80010003;
+        register R2 = 12;
+        flag C = true
+    });
+
+    let instruction: Operation = BicImmediate::builder()
+        .set_rd(None)
+        .set_rn(Register::R1)
+        .set_imm(0b00110)
+        .set_s(Some(true))
+        .set_carry(Some(true))
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x80010001,
+        flag C == 1
+    });
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80010003;
+        register R2 = 12;
+        flag C = true;
+        flag Z = false
+    });
+
+    let instruction: Operation = BicImmediate::builder()
+        .set_rd(None)
+        .set_rn(Register::R1)
+        .set_imm(0xFFFFFFFF)
+        .set_s(Some(true))
+        .set_carry(Some(true))
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag C == 1,
+        flag Z == 1
+    });
+}
+
+#[test]
+fn test_bic_reg() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80010003;
+        register R2 = 0b0110;
+        flag C = false
+    });
+
+    let instruction: Operation = BicRegister::builder()
+        .set_rd(None)
+        .set_rn(Register::R1)
+        .set_s(Some(SetFlags::Literal(false)))
+        .set_rm(Register::R2)
+        .set_shift(None)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x80010001,
+        flag C == 0
+    });
+}
+
+#[test]
+fn test_bic_reg_set_flags() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80010003;
+        register R2 = 0b11;
+        flag C = true
+    });
+
+    let instruction: Operation = BicRegister::builder()
+        .set_rd(None)
+        .set_rn(Register::R1)
+        .set_s(Some(SetFlags::Literal(true)))
+        .set_rm(Register::R2)
+        .set_shift(Some(ImmShift {
+            shift_n: 1,
+            shift_t: Shift::Lsl,
+        }))
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x80010001,
+        flag C == 0
+    });
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80010000;
+        register R2 = 0xFFFFFFFF;
+        flag C = false;
+        flag Z = false
+    });
+
+    let instruction: Operation = BicRegister::builder()
+        .set_rd(None)
+        .set_rn(Register::R1)
+        .set_s(Some(SetFlags::Literal(true)))
+        .set_rm(Register::R2)
+        .set_shift(Some(ImmShift {
+            shift_n: 1,
+            shift_t: Shift::Lsl,
+        }))
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag C == 1,
+        flag Z == 1
     });
 }
