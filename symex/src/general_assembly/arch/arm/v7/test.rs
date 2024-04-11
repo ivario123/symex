@@ -55,11 +55,18 @@ macro_rules! test {
 
             $(== $eq_rhs:literal)?
             $(!= $neq_rhs:literal)?
+            $(== ($eq_rhs_expr:tt))?
+            $(!= ($neq_rhs_expr:tt))?
         ),*
     }) => {
         $(
             let result = get_operand!($exec $(register $reg)? $(address $address)? $(flag $flag)?);
-            assert!(result $(== $eq_rhs)? $(!= $neq_rhs)?,stringify!( $($reg)? $($address)? $($flag)? $(!= $eq_rhs)? $(== $neq_rhs)?));
+            assert!(result $(== $eq_rhs)? $(!= $neq_rhs)?,stringify!( $($reg)? $($address)? $($flag)?
+                                                                      $(!= $eq_rhs)?
+                                                                      $(== $neq_rhs)?
+                                                                      $(!= $eq_rhs_expr)?
+                                                                      $(== $neq_rhs_expr)?
+                                                                      ));
         )*
 
     };
@@ -1689,5 +1696,161 @@ fn test_asr_set_flag() {
         register R1 == 0x00000000,
         flag C == 1,
         flag Z == 1
+    });
+}
+
+#[test]
+fn test_b() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80000000;
+        register R2 = 1;
+        flag C = true
+    });
+
+    let instruction: Operation = B::builder()
+        .set_condition(Condition::None)
+        .set_imm(1230)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 1234
+    });
+}
+
+#[test]
+fn test_b_coditional() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80000000;
+        register R2 = 1;
+        flag C = true
+    });
+
+    let instruction: Operation = B::builder()
+        .set_condition(Condition::Cs)
+        .set_imm(1230)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 1234
+    });
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80000000;
+        register R2 = 1;
+        flag C = true
+    });
+
+    let instruction: Operation = B::builder()
+        .set_condition(Condition::Cc)
+        .set_imm(1230)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 2
+    });
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80000000;
+        register R2 = 1;
+        flag V = true
+    });
+
+    let instruction: Operation = B::builder()
+        .set_condition(Condition::Vs)
+        .set_imm(1230)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 1234
+    });
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x80000000;
+        register R2 = 1;
+        flag V = true
+    });
+
+    let instruction: Operation = B::builder()
+        .set_condition(Condition::Vc)
+        .set_imm(1230)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 2
     });
 }
