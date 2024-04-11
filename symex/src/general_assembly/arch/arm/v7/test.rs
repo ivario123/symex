@@ -201,7 +201,7 @@ fn test_adc_set_flag() {
 
     let instruction: Operation = AdcRegister::builder()
         .set_s(Some(SetFlags::Literal(true)))
-        .set_rd(Some(Register::R1))
+        .set_rd(None)
         .set_rn(Register::R1)
         .set_rm(Register::R2)
         .set_shift(None)
@@ -383,7 +383,7 @@ fn test_adc_immediate_set_flag() {
 
     let instruction: Operation = AdcImmediate::builder()
         .set_s(Some(true))
-        .set_rd(Some(Register::R1))
+        .set_rd(None)
         .set_rn(Register::R1)
         .set_imm(3)
         .complete()
@@ -494,7 +494,7 @@ fn test_add_set_flag() {
 
     let instruction: Operation = AddRegister::builder()
         .set_s(Some(SetFlags::Literal(true)))
-        .set_rd(Some(Register::R1))
+        .set_rd(None)
         .set_rn(Register::R1)
         .set_rm(Register::R2)
         .set_shift(None)
@@ -638,7 +638,7 @@ fn test_add_imm_no_set_flag() {
 
     let instruction: Operation = AdcImmediate::builder()
         .set_s(Some(false))
-        .set_rd(Some(Register::R1))
+        .set_rd(None)
         .set_rn(Register::R1)
         .set_imm(3)
         .complete()
@@ -707,7 +707,7 @@ fn test_add_immediate_set_flag() {
 
     let instruction: Operation = AdcImmediate::builder()
         .set_s(Some(true))
-        .set_rd(Some(Register::R1))
+        .set_rd(None)
         .set_rn(Register::R1)
         .set_imm(0x80000000)
         .complete()
@@ -747,7 +747,7 @@ fn test_add_sp_immediate() {
 
     let instruction: Operation = AddSPImmediate::builder()
         .set_s(Some(true))
-        .set_rd(Some(Register::SP))
+        .set_rd(None)
         .set_imm(16)
         .complete()
         .into();
@@ -1020,7 +1020,7 @@ fn test_and_set_flag() {
 
     let instruction: Operation = AndRegister::builder()
         .set_s(Some(SetFlags::Literal(true)))
-        .set_rd(Some(Register::R1))
+        .set_rd(None)
         .set_rn(Register::R1)
         .set_rm(Register::R2)
         .set_shift(Some(ImmShift {
@@ -1338,5 +1338,356 @@ fn test_and_immediate_set_flag() {
         register R1 == 0x80000000,
         flag C == 0,
         flag N == 1
+    });
+}
+
+#[test]
+fn test_asr_immediate() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x80000000;
+        flag C = true
+    });
+
+    let instruction: Operation = AsrImmediate::builder()
+        .set_s(Some(SetFlags::Literal(false)))
+        .set_rd(Register::R1)
+        .set_rm(Register::R1)
+        .set_imm(1)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0xc0000000,
+        flag C == 1
+    });
+}
+
+#[test]
+fn test_asr_immediate_set_flag() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x80000001;
+        flag C = false;
+        flag Z = false;
+        flag N = false
+    });
+
+    let instruction: Operation = AsrImmediate::builder()
+        .set_s(Some(SetFlags::Literal(true)))
+        .set_rd(Register::R1)
+        .set_rm(Register::R1)
+        .set_imm(1)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0xc0000000,
+        flag C == 1,
+        flag N == 1
+    });
+
+    initiate!(executor {
+        register R1 = 0x00000001;
+        flag C = false;
+        flag Z = false;
+        flag N = false
+    });
+
+    let instruction: Operation = AsrImmediate::builder()
+        .set_s(Some(SetFlags::Literal(true)))
+        .set_rd(Register::R1)
+        .set_rm(Register::R1)
+        .set_imm(1)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x00000000,
+        flag C == 1,
+        flag Z == 1
+    });
+
+    initiate!(executor {
+        register R1 = 0x80000001;
+        flag C = false;
+        flag Z = false;
+        flag N = false
+    });
+
+    let instruction: Operation = AsrImmediate::builder()
+        .set_s(Some(SetFlags::InITBlock(true)))
+        .set_rd(Register::R1)
+        .set_rm(Register::R1)
+        .set_imm(1)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(true),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0xc0000000,
+        flag C == 1,
+        flag N == 1
+    });
+
+    initiate!(executor {
+        register R1 = 0x00000001;
+        flag C = false;
+        flag Z = false;
+        flag N = false
+    });
+
+    let instruction: Operation = AsrImmediate::builder()
+        .set_s(Some(SetFlags::InITBlock(false)))
+        .set_rd(Register::R1)
+        .set_rm(Register::R1)
+        .set_imm(1)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x00000000,
+        flag C == 1,
+        flag Z == 1
+    });
+}
+
+#[test]
+fn test_asr() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x80000000;
+        register R2 = 1;
+        flag C = true
+    });
+
+    let instruction: Operation = AsrRegister::builder()
+        .set_s(Some(SetFlags::Literal(false)))
+        .set_rd(Register::R1)
+        .set_rn(Register::R1)
+        .set_rm(Register::R2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0xc0000000,
+        flag C == 1
+    });
+}
+
+#[test]
+fn test_asr_set_flag() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x80000001;
+        register R2 = 1;
+        flag C = false;
+        flag Z = false;
+        flag N = false
+    });
+
+    let instruction: Operation = AsrRegister::builder()
+        .set_s(Some(SetFlags::Literal(true)))
+        .set_rd(Register::R1)
+        .set_rn(Register::R1)
+        .set_rm(Register::R2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0xc0000000,
+        flag C == 1,
+        flag N == 1
+    });
+
+    initiate!(executor {
+        register R1 = 0x00000001;
+        register R2 = 1;
+        flag C = false;
+        flag Z = false;
+        flag N = false
+    });
+
+    let instruction: Operation = AsrRegister::builder()
+        .set_s(Some(SetFlags::Literal(true)))
+        .set_rd(Register::R1)
+        .set_rn(Register::R1)
+        .set_rm(Register::R2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x00000000,
+        flag C == 1,
+        flag Z == 1
+    });
+
+    initiate!(executor {
+        register R1 = 0x80000001;
+        register R2 = 1;
+        flag C = false;
+        flag Z = false;
+        flag N = false
+    });
+
+    let instruction: Operation = AsrRegister::builder()
+        .set_s(Some(SetFlags::InITBlock(true)))
+        .set_rd(Register::R1)
+        .set_rn(Register::R1)
+        .set_rm(Register::R2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(true),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0xc0000000,
+        flag C == 1,
+        flag N == 1
+    });
+
+    initiate!(executor {
+        register R1 = 0x00000001;
+        register R2 = 1;
+        flag C = false;
+        flag Z = false;
+        flag N = false
+    });
+
+    let instruction: Operation = AsrRegister::builder()
+        .set_s(Some(SetFlags::InITBlock(false)))
+        .set_rd(Register::R1)
+        .set_rn(Register::R1)
+        .set_rm(Register::R2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x00000000,
+        flag C == 1,
+        flag Z == 1
     });
 }
