@@ -72,18 +72,26 @@ macro_rules! test {
         ),*
     }) => {
         $(
-            let result = get_operand!($exec $(register $reg)? $(address $address $width)? $(flag $flag)?);
-            assert!(result
-                    $(== $eq_rhs)?
-                    $(!= $neq_rhs)?
+            let result = get_operand!(
+                $exec $(register $reg)? $(address $address $width)? $(flag $flag)?
+            );
+
+            assert!(
+                result
+                $(== $eq_rhs)?
+                $(!= $neq_rhs)?
+                $(!= $eq_rhs_expr)?
+                $(== $neq_rhs_expr)?,
+                stringify!(
+                    $($reg)?
+                    $($address)?
+                    $($flag)?
+                    $(!= $eq_rhs)?
+                    $(== $neq_rhs)?
                     $(!= $eq_rhs_expr)?
                     $(== $neq_rhs_expr)?
-                    ,stringify!( $($reg)? $($address)? $($flag)?
-                              $(!= $eq_rhs)?
-                              $(== $neq_rhs)?
-                              $(!= $eq_rhs_expr)?
-                              $(== $neq_rhs_expr)?
-                              ));
+                )
+            );
         )*
 
     };
@@ -2693,5 +2701,148 @@ fn test_mov_reg_set_flags() {
         register R1 == 0x80010001,
         flag Z == 0,
         flag N == 1
+    });
+}
+
+#[test]
+fn test_pop() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x3;
+        register R2 =  0x0;
+        flag C = 0;
+        flag Z = 0;
+        flag N = 0;
+        register SP = 0x100;
+        address (0x100,32) = 0x1001;
+        address (0x104,32) = 0x1002;
+        address (0x108,32) = 0x1003;
+        address (0x10C,32) = 0x1003
+
+
+    });
+
+    let instruction: Operation = Pop::builder()
+        .set_registers(RegisterList {
+            registers: vec![Register::R4, Register::R5, Register::R7, Register::PC],
+        })
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R4 == 0x1001,
+        register R5 == 0x1002,
+        register R7 == 0x1003,
+        register PC == 0x1002,
+        register SP == 0x110
+    });
+}
+
+#[test]
+fn test_push() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x3;
+        register R2 =  0x0;
+        flag C = 0;
+        flag Z = 0;
+        flag N = 0;
+        register SP = 0x110;
+        register R4 = 0x1001;
+        register R5 = 0x1002;
+        register R7 = 0x1003;
+        register LR = 0x1003
+    });
+
+    let instruction: Operation = Push::builder()
+        .set_registers(RegisterList {
+            registers: vec![Register::R4, Register::R5, Register::R7, Register::LR],
+        })
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        address (0x100,32) == 0x1001,
+        address (0x104,32) == 0x1002,
+        address (0x108,32) == 0x1003,
+        address (0x10C,32) == 0x1003,
+        register SP == 0x100
+    });
+}
+
+#[test]
+fn test_strh_imm() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x3;
+        register R2 =  0x0;
+        flag C = 0;
+        flag Z = 0;
+        flag N = 0;
+        register SP = 0x110;
+        register R4 = 0x1001;
+        register R5 = 0x1002;
+        register R7 = 0x1003;
+        register LR = 0x1003
+    });
+
+    let instruction: Operation = Push::builder()
+        .set_registers(RegisterList {
+            registers: vec![Register::R4, Register::R5, Register::R7, Register::LR],
+        })
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        address (0x100,32) == 0x1001,
+        address (0x104,32) == 0x1002,
+        address (0x108,32) == 0x1003,
+        address (0x10C,32) == 0x1003,
+        register SP == 0x100
     });
 }
