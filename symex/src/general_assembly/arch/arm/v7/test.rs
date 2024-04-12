@@ -3290,3 +3290,81 @@ fn test_sub_sp_imm_set_flags() {
         flag C == 1
     });
 }
+
+#[test]
+fn test_sub_uxth() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x123;
+        register R2 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = Uxth::builder()
+        .set_rd(Register::R1)
+        .set_rm(Register::R2)
+        .set_rotation(Some(1))
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x91,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 0
+    });
+
+    initiate!(executor {
+        register R1 = 0x123;
+        register R2 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = Uxth::builder()
+        .set_rd(Register::R1)
+        .set_rm(Register::R2)
+        .set_rotation(None)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x123,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 0
+    });
+}

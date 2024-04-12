@@ -544,7 +544,7 @@ impl<'vm> GAExecutor<'vm> {
                         );
                         value
                             .srl(&shift_amount)
-                            .or(&value.srl(&word_size).sub(&shift_amount))
+                            .or(&value.srl(&word_size.sub(&shift_amount)))
                     }
                 };
                 self.set_operand_value(destination, result, local)?;
@@ -590,7 +590,7 @@ impl<'vm> GAExecutor<'vm> {
                 );
                 let value = self.get_operand_value(operand, local)?;
                 let shift = self.get_operand_value(shift, local)?.srem(&word_size);
-                let result = value.srl(&shift).or(&value.srl(&word_size).sub(&shift));
+                let result = value.srl(&shift).or(&value.sll(&word_size.sub(&shift)));
                 self.set_operand_value(destination, result, local)?;
             }
             Operation::ConditionalJump {
