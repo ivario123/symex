@@ -499,7 +499,7 @@ impl Convert for (usize, V7Operation) {
                     let imm = imm.local_into();
                     
                     pseudo!([
-                            let next_instr_addr = Register("PC+");
+                            let next_instr_addr = Register("PC");
                             Register("LR") = next_instr_addr<31:1> << 1.local_into();
                             Register("LR") |= 0b1.local_into();
                             next_instr_addr = Register("PC+") + imm;

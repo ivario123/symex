@@ -2231,6 +2231,45 @@ fn test_bic_reg_set_flags() {
 }
 
 #[test]
+fn test_bl() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register PC = 0x100;
+        register LR = 0xFFFFFFFF;
+        flag C = false;
+        flag V = false;
+        flag N = false;
+        flag Z = false
+    });
+
+    let instruction: Operation = Bl::builder().set_imm(0x4).complete().into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 0x108,
+        register LR == 0x103,
+        flag C == 0,
+        flag V == 0,
+        flag N == 0,
+        flag Z == 0
+    });
+}
+
+#[test]
 fn test_cmp_imm() {
     let mut vm = setup_test_vm();
     let project = vm.project;
