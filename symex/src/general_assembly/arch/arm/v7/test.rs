@@ -3099,3 +3099,194 @@ fn test_str_imm() {
         register R2 == 0x104
     });
 }
+
+#[test]
+fn test_sub_sp_imm_no_flags() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubSpMinusImmediate::builder()
+        .set_s(Some(false))
+        .set_rd(Some(Register::R1))
+        .set_imm(0x100)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x4,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 0
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubSpMinusImmediate::builder()
+        .set_s(Some(false))
+        .set_rd(Some(Register::R1))
+        .set_imm(0x104)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 0
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 1;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubSpMinusImmediate::builder()
+        .set_s(Some(false))
+        .set_rd(Some(Register::R1))
+        .set_imm(0x104)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 1,
+        flag V == 0,
+        flag C == 0
+    });
+}
+
+#[test]
+fn test_sub_sp_imm_set_flags() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubSpMinusImmediate::builder()
+        .set_s(Some(true))
+        .set_rd(Some(Register::R1))
+        .set_imm(0x100)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x4,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 1
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubSpMinusImmediate::builder()
+        .set_s(Some(true))
+        .set_rd(Some(Register::R1))
+        .set_imm(0x104)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 1,
+        flag V == 0,
+        flag C == 1
+    });
+}

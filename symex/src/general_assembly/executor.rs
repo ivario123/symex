@@ -704,8 +704,10 @@ impl<'vm> GAExecutor<'vm> {
                         .or(&c2)
                     }
                     (true, false) => {
-                        add_with_carry(&op1, &op2.not(), &one, self.project.get_word_size())
-                            .carry_out
+                        let lhs = op1;
+                        let rhs = op2.not();
+                        println!("Calculating carry for {lhs:?} - {rhs:?}");
+                        add_with_carry(&lhs, &rhs, &one, self.project.get_word_size()).carry_out
                     }
                     (false, true) => {
                         let carry_in = self.state.get_flag("C".to_owned()).unwrap();
