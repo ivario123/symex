@@ -2680,6 +2680,115 @@ fn test_ldr_literal() {
 }
 
 #[test]
+fn test_ldr_register() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x4;
+        address (0x104,32) = 0x100;
+        register SP = 0x100
+
+    });
+
+    let instruction: Operation = LdrRegister::builder()
+        .set_rn(Register::R1)
+        .set_rt(Register::SP)
+        .set_w(Some(false))
+        .set_rm(Register::SP)
+        .set_shift(None)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register SP == 0x100,
+        address (0x104,32) == 0x100,
+        register R1 == 0x4
+    });
+
+    initiate!(executor {
+        register R1 = 0x4;
+        address (0x104,32) = 0x100;
+        register SP = 0x100
+
+    });
+
+    let instruction: Operation = LdrRegister::builder()
+        .set_rn(Register::R1)
+        .set_rt(Register::SP)
+        .set_w(Some(true))
+        .set_rm(Register::SP)
+        .set_shift(None)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register SP == 0x100,
+        address (0x104,32) == 0x100,
+        register R1 == 0x104
+    });
+
+    initiate!(executor {
+        register R1 = 0x4;
+        address (0x20c,32) = 0x100;
+        register SP = 0x104
+
+    });
+
+    let instruction: Operation = LdrRegister::builder()
+        .set_rn(Register::R1)
+        .set_rt(Register::SP)
+        .set_w(Some(true))
+        .set_rm(Register::SP)
+        .set_shift(Some(ImmShift {
+            shift_t: Shift::Lsl,
+            shift_n: 1,
+        }))
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register SP == 0x100,
+        address (0x20c,32) == 0x100,
+        register R1 == 0x20c
+    });
+}
+#[test]
 fn test_ldrh_imm() {
     let mut vm = setup_test_vm();
     let project = vm.project;
