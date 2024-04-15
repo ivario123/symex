@@ -1365,8 +1365,8 @@ impl Convert for (usize, V7Operation) {
                     pseudo!([
                         let result = rm << imm;
                         if (s) {
-                            SetNFlag(rd);
-                            SetZFlag(rd);
+                            SetNFlag(result);
+                            SetZFlag(result);
                             SetCFlag(rm, imm, lsl);
                         }
                         rd = result;
@@ -1419,8 +1419,8 @@ impl Convert for (usize, V7Operation) {
                         let result = rm >> imm;
 
                         if (s) {
-                            SetNFlag(rd);
-                            SetZFlag(rd);
+                            SetNFlag(result);
+                            SetZFlag(result);
                             SetCFlag(rm, imm, rsl);
                         }
 
