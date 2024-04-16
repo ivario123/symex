@@ -56,7 +56,7 @@ impl Arch for ArmV7EM {
         ));
         let read_pc: RegisterReadHook = |state| {
             let pc = state.get_register("PC".to_owned()).unwrap();
-            // let pc = pc.simplify();
+            let pc = pc.simplify();
             let size = state.current_instruction.clone().unwrap().instruction_size;
             let two = state.ctx.from_u64((size as u64) / 8u64, 32);
             let four = state.ctx.from_u64(4, 32);
@@ -74,8 +74,11 @@ impl Arch for ArmV7EM {
         let write_sp: RegisterWriteHook = |state, value| {
             state.set_register(
                 "SP".to_owned(),
-                value, /* .and(&state.ctx.from_u64((!(0b11u32)) as u64, 32)) */
-            )
+                value.and(&state.ctx.from_u64((!(0b11u32)) as u64, 32)),
+            )?;
+            let sp = state.get_register("SP".to_owned()).unwrap();
+            let sp = sp.simplify();
+            state.set_register("SP".to_owned(), sp)
         };
 
         cfg.register_read_hooks.push(("PC+".to_owned(), read_pc));

@@ -2968,26 +2968,18 @@ impl Convert for (usize, V7Operation) {
                             is_tbh.unwrap_or(false)
                         ) from tb
                     ); 
-                    let mut adjust = false;
-                    if rn == Register::PC || rm == Register::PC {
-                        adjust = true;
-                    }
+
                     let (rn,rm) = (rn.local_into(),rm.local_into());
+
                     pseudo!([
                             let halfwords = 0.local_into();
 
                             if (is_tbh) {
                                 let address = rm << 1.local_into();
                                 address = address + rn;
-                                if (adjust){
-                                    address -= (0x2002_0000 - 0x0082_0000).local_into();
-                                }
                                 halfwords = ZeroExtend(LocalAddress(address,16),32);
                             } else {
                                 let address = rn + rm;
-                                if (adjust){
-                                    address -= (0x2002_0000 - 0x0082_0000).local_into();
-                                }
                                 halfwords = ZeroExtend(LocalAddress(address,8),32);
                             }
                             let target = halfwords*2.local_into();

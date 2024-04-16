@@ -14,7 +14,10 @@ use crate::{
 };
 
 use super::ArmV7EM;
-use general_assembly::operand::Operand;
+use general_assembly::{
+    operand::{DataWord, Operand},
+    operation::Operation as GAOperation,
+};
 
 use disarmv7::prelude::{operation::*, *};
 
@@ -2365,6 +2368,25 @@ fn test_bl() {
 
     let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
 
+    let v6 = vec![
+        GAOperation::Move {
+            destination: Operand::Local("PC".to_owned()),
+            source: Operand::Register("PC".to_owned()),
+        },
+        GAOperation::Move {
+            destination: Operand::Register("LR".to_owned()),
+            source: Operand::Local("PC".to_owned()),
+        },
+        GAOperation::Add {
+            destination: Operand::Local("newPC".to_owned()),
+            operand1: Operand::Local("PC".to_owned()),
+            operand2: Operand::Immidiate(DataWord::Word32(0x4)),
+        },
+        GAOperation::Move {
+            destination: Operand::Register("PC".to_owned()),
+            source: Operand::Local("newPC".to_owned()),
+        },
+    ];
     initiate!(executor {
         register PC = 0x100;
         register LR = 0xFFFFFFFF;
@@ -2388,8 +2410,37 @@ fn test_bl() {
         .expect("Malformed instruction");
 
     test!(executor {
-        register PC == 0x108,
+        register PC == 0x106,
         register LR == 0x103,
+        flag C == 0,
+        flag V == 0,
+        flag N == 0,
+        flag Z == 0
+    });
+
+    initiate!(executor {
+        register PC = 0x100;
+        register LR = 0xFFFFFFFF;
+        flag C = false;
+        flag V = false;
+        flag N = false;
+        flag Z = false
+    });
+
+    let instruction = Instruction {
+        operations: v6,
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 0x106,
+        register LR == 0x102, // It should be one less since V6 does not account for the error bit.
         flag C == 0,
         flag V == 0,
         flag N == 0,
@@ -4889,5 +4940,78 @@ fn test_sub_uxth() {
         flag Z == 0,
         flag V == 0,
         flag C == 0
+    });
+}
+
+#[test]
+fn test_tb() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x123;
+        register R2 = 0x1;
+        address(0x123,8) = 0x23;
+        address(0x124,8) = 0x22;
+        address(0x125,8) = 0x21;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = Tb::builder()
+        .set_is_tbh(Some(false))
+        .set_rn(Register::R1)
+        .set_rm(Register::R2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 0x48
+    });
+
+    initiate!(executor {
+        register PC = 0;
+        register R1 = 0x122;
+        register R2 = 0x1;
+        address(0x122,16) = 0x23;
+        address(0x124,16) = 0x22;
+        address(0x126,16) = 0x21
+    });
+
+    let instruction: Operation = Tb::builder()
+        .set_is_tbh(Some(true))
+        .set_rn(Register::R1)
+        .set_rm(Register::R2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register PC == 0x48
     });
 }
