@@ -3779,157 +3779,145 @@ fn test_rsb() {
     });
 }
 
-// #[test]
-// fn test_strb_imm() {
-//     let mut vm = setup_test_vm();
-//     let project = vm.project;
-//
-//     let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
-//
-//     initiate!(executor {
-//         register R1 = 0x80001234;
-//         register R2 = 0x100;
-//         address (0x100,8) = 0x0001;
-//         address (0x101,8) = 0x0002;
-//         address (0x102,8) = 0x0003;
-//         address (0x103,8) = 0x0003
-//     });
-//
-//     let instruction: Operation = StrbImmediate::builder()
-//         .set_index(Some(true))
-//         .set_add(true)
-//         .set_w(Some(true))
-//         .set_rt(Register::R1)
-//         .set_rn(Register::R2)
-//         .set_imm(1)
-//         .complete()
-//         .into();
-//
-//     let instruction = Instruction {
-//         operations: (16, instruction).convert(false),
-//         memory_access: false,
-//         instruction_size: 16,
-//         max_cycle: CycleCount::Value(0),
-//     };
-//     println!("Running instruction {:?}", instruction);
-//     executor
-//         .execute_instruction(&instruction)
-//         .expect("Malformed instruction");
-//
-//     test!(executor {
-//         address (0x102,2) == 0x002,
-//         address (0x101,8) == 0x34,
-//         register R2 == 0x101
-//     });
-//
-//     initiate!(executor {
-//         register R1 = 0x80001234;
-//         register R2 = 0x100;
-//         address (0x100,32) = 0x1001;
-//         address (0x104,32) = 0x1002;
-//         address (0x108,32) = 0x1003;
-//         address (0x10C,32) = 0x1003
-//     });
-//
-//     let instruction: Operation = StrhImmediate::builder()
-//         .set_index(true)
-//         .set_add(true)
-//         .set_w(false)
-//         .set_rt(Register::R1)
-//         .set_rn(Register::R2)
-//         .set_imm(Some(4))
-//         .complete()
-//         .into();
-//
-//     let instruction = Instruction {
-//         operations: (16, instruction).convert(false),
-//         memory_access: false,
-//         instruction_size: 16,
-//         max_cycle: CycleCount::Value(0),
-//     };
-//     println!("Running instruction {:?}", instruction);
-//     executor
-//         .execute_instruction(&instruction)
-//         .expect("Malformed instruction");
-//
-//     test!(executor {
-//         address (0x104,32) == 0x1234,
-//         address (0x104,16) == 0x1234,
-//         register R2 == 0x100
-//     });
-//
-//     initiate!(executor {
-//         register R1 = 0x80001234;
-//         register R2 = 0x104;
-//         address (0x100,32) = 0x1001;
-//         address (0x104,32) = 0x1002;
-//         address (0x108,32) = 0x1003;
-//         address (0x10C,32) = 0x1003
-//     });
-//
-//     let instruction: Operation = StrhImmediate::builder()
-//         .set_index(true)
-//         .set_add(false)
-//         .set_w(false)
-//         .set_rt(Register::R1)
-//         .set_rn(Register::R2)
-//         .set_imm(Some(4))
-//         .complete()
-//         .into();
-//
-//     let instruction = Instruction {
-//         operations: (16, instruction).convert(false),
-//         memory_access: false,
-//         instruction_size: 16,
-//         max_cycle: CycleCount::Value(0),
-//     };
-//     println!("Running instruction {:?}", instruction);
-//     executor
-//         .execute_instruction(&instruction)
-//         .expect("Malformed instruction");
-//
-//     test!(executor {
-//         address (0x100,32) == 0x1234,
-//         address (0x100,16) == 0x1234,
-//         register R2 == 0x104
-//     });
-//
-//     initiate!(executor {
-//         register R1 = 0x80001234;
-//         register R2 = 0x104;
-//         address (0x100,32) = 0x1001;
-//         address (0x104,32) = 0x1002;
-//         address (0x108,32) = 0x1003;
-//         address (0x10C,32) = 0x1003
-//     });
-//
-//     let instruction: Operation = StrhImmediate::builder()
-//         .set_index(false)
-//         .set_add(false) // Should not matter here
-//         .set_w(false)
-//         .set_rt(Register::R1)
-//         .set_rn(Register::R2)
-//         .set_imm(Some(4))
-//         .complete()
-//         .into();
-//
-//     let instruction = Instruction {
-//         operations: (16, instruction).convert(false),
-//         memory_access: false,
-//         instruction_size: 16,
-//         max_cycle: CycleCount::Value(0),
-//     };
-//     println!("Running instruction {:?}", instruction);
-//     executor
-//         .execute_instruction(&instruction)
-//         .expect("Malformed instruction");
-//
-//     test!(executor {
-//         address (0x104,32) == 0x1234,
-//         address (0x104,16) == 0x1234,
-//         register R2 == 0x104
-//     });
-// }
+#[test]
+fn test_strb_imm() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register R1 = 0x80001234;
+        register R2 = 0x101;
+        address (0x100,32) = 0x1234_0003
+    });
+
+    let instruction: Operation = StrbImmediate::builder()
+        .set_index(Some(true))
+        .set_add(true)
+        .set_w(Some(true))
+        .set_rt(Register::R1)
+        .set_rn(Register::R2)
+        .set_imm(2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        address (0x103,8) == 0x034,
+        register R2 == 0x103,
+        register R1 == 0x8000_1234
+    });
+
+    initiate!(executor {
+        register R1 = 0x80001234;
+        register R2 = 0x101;
+        address (0x100,32) = 0x1234_0003
+    });
+
+    let instruction: Operation = StrbImmediate::builder()
+        .set_index(Some(true))
+        .set_add(true)
+        .set_w(Some(false))
+        .set_rt(Register::R1)
+        .set_rn(Register::R2)
+        .set_imm(2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        address (0x103,8) == 0x034,
+        register R2 == 0x101,
+        register R1 == 0x8000_1234
+    });
+
+    initiate!(executor {
+        register R1 = 0x80001234;
+        register R2 = 0x105;
+        address (0x100,32) = 0x1234_0003
+    });
+
+    let instruction: Operation = StrbImmediate::builder()
+        .set_index(Some(true))
+        .set_add(false)
+        .set_w(Some(false))
+        .set_rt(Register::R1)
+        .set_rn(Register::R2)
+        .set_imm(2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        address (0x103,8) == 0x034,
+        register R2 == 0x105,
+        register R1 == 0x8000_1234
+    });
+
+    initiate!(executor {
+        register R1 = 0x80001234;
+        register R2 = 0x103;
+        address (0x100,32) = 0x1234_0003
+    });
+
+    let instruction: Operation = StrbImmediate::builder()
+        .set_index(Some(false))
+        .set_add(false)
+        .set_w(Some(false))
+        .set_rt(Register::R1)
+        .set_rn(Register::R2)
+        .set_imm(2)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        address (0x103,8) == 0x034,
+        register R2 == 0x103,
+        register R1 == 0x8000_1234
+    });
+}
 
 #[test]
 fn test_strh_imm() {
@@ -4228,6 +4216,410 @@ fn test_str_imm() {
     test!(executor {
         address (0x104,32) == 0x80001234,
         register R2 == 0x104
+    });
+}
+
+#[test]
+fn test_sub_imm_no_flags() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubImmediate::builder()
+        .set_s(Some(SetFlags::Literal(false)))
+        .set_rn(Register::SP)
+        .set_rd(Some(Register::R1))
+        .set_imm(0x100)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x4,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 0
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubSpMinusImmediate::builder()
+        .set_s(Some(false))
+        .set_rd(Some(Register::R1))
+        .set_imm(0x104)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 0
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 1;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubImmediate::builder()
+        .set_s(Some(SetFlags::Literal(false)))
+        .set_rn(Register::SP)
+        .set_rd(Some(Register::R1))
+        .set_imm(0x104)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 1,
+        flag V == 0,
+        flag C == 0
+    });
+}
+
+#[test]
+fn test_sub_imm_set_flags() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubImmediate::builder()
+        .set_s(Some(SetFlags::InITBlock(false)))
+        .set_rn(Register::SP)
+        .set_rd(Some(Register::R1))
+        .set_imm(0x100)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x4,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 1
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubImmediate::builder()
+        .set_s(Some(SetFlags::InITBlock(false)))
+        .set_rn(Register::SP)
+        .set_rd(Some(Register::R1))
+        .set_imm(0x104)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 1,
+        flag V == 0,
+        flag C == 1
+    });
+}
+
+#[test]
+fn test_sub_reg_no_flags() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        register R2 = 0x100;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubRegister::builder()
+        .set_s(Some(SetFlags::Literal(false)))
+        .set_rn(Register::SP)
+        .set_rd(Some(Register::R1))
+        .set_rm(Register::R2)
+        .set_shift(None)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x4,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 0
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        register R2 = 0x104;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubRegister::builder()
+        .set_s(Some(SetFlags::Literal(false)))
+        .set_rd(Some(Register::R1))
+        .set_rm(Register::R2)
+        .set_shift(None)
+        .set_rn(Register::SP)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 0
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        register R2 = (0x104 >> 1);
+        flag N = 0;
+        flag Z = 1;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubRegister::builder()
+        .set_s(Some(SetFlags::Literal(false)))
+        .set_rd(Some(Register::R1))
+        .set_rm(Register::R2)
+        .set_shift(Some(ImmShift {
+            shift_n: 1,
+            shift_t: Shift::Lsl,
+        }))
+        .set_rn(Register::SP)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 1,
+        flag V == 0,
+        flag C == 0
+    });
+}
+
+#[test]
+fn test_sub_reg_set_flags() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        register R2 = 0x100;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubRegister::builder()
+        .set_s(Some(SetFlags::Literal(true)))
+        .set_rd(Some(Register::R1))
+        .set_rm(Register::R2)
+        .set_shift(None)
+        .set_rn(Register::SP)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0x4,
+        flag N == 0,
+        flag Z == 0,
+        flag V == 0,
+        flag C == 1
+    });
+
+    initiate!(executor {
+        register SP = 0x104;
+        register R1 = 0x123;
+        register R2 = 0x104;
+        flag N = 0;
+        flag Z = 0;
+        flag V = 0;
+        flag C = 0
+    });
+
+    let instruction: Operation = SubRegister::builder()
+        .set_s(Some(SetFlags::Literal(true)))
+        .set_rd(Some(Register::R1))
+        .set_rm(Register::R2)
+        .set_shift(None)
+        .set_rn(Register::SP)
+        .complete()
+        .into();
+
+    let instruction = Instruction {
+        operations: (16, instruction).convert(false),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    println!("Running instruction {:?}", instruction);
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register R1 == 0,
+        flag N == 0,
+        flag Z == 1,
+        flag V == 0,
+        flag C == 1
     });
 }
 
