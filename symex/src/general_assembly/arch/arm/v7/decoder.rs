@@ -502,7 +502,7 @@ impl Convert for (usize, V7Operation) {
                             let next_instr_addr = Register("PC");
                             Register("LR") = next_instr_addr<31:1> << 1.local_into();
                             Register("LR") |= 0b1.local_into();
-                            next_instr_addr = Register("PC+") + imm;
+                            next_instr_addr = Register("PC") + imm;
                             next_instr_addr = next_instr_addr<31:1> << 1.local_into();
                             Register("PC") = next_instr_addr;
                     ])
@@ -512,7 +512,7 @@ impl Convert for (usize, V7Operation) {
                     let rm = rm.local_into();
                     pseudo!([
                         let target = rm;
-                        let next_instr_addr = Register("PC+") - 2.local_into();
+                        let next_instr_addr = Register("PC") - 2.local_into();
 
                         Register("LR") = next_instr_addr<31:1> << 1.local_into();
                         Register("LR") |= 1.local_into();
