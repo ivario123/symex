@@ -244,7 +244,10 @@ impl GAState {
         // crude solution should prbobly change
         if register == "PC" {
             let value = match expr.get_constant() {
-                Some(v) => v,
+                Some(v) => {
+                    // assert!(v % 4 == 0);
+                    v
+                }
                 None => {
                     trace!("not a concrete pc try to generate possible values");
                     let values: Vec<u64> = match self.constraints.get_values(&expr, 500).unwrap() {

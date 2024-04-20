@@ -851,8 +851,7 @@ impl Convert for (usize, V7Operation) {
                     let new_t = rt.local_into();
                     pseudo!([
                         // Alling to 4
-                        let base = Register("PC+")/4.local_into();
-                        base = base*4.local_into();
+                        let base = Register("PC+")& 0xFFFFFFFC.local_into();
 
                         let address = base - imm;
                         if (add) {
@@ -947,8 +946,8 @@ impl Convert for (usize, V7Operation) {
                         imm.local_into()
                         ) from ldrb);
                     pseudo!([
-                        let base = Register("PC+") /4.local_into();
-                        base = base * 4.local_into();
+                        let base = Register("PC+") & 0xFFFFFFFC.local_into();
+
                         let address = base - imm;
                         if (add) {
                             address = base + imm;
@@ -1074,8 +1073,7 @@ impl Convert for (usize, V7Operation) {
                     );
 
                     pseudo!([
-                        let aligned = Register("PC+") / 4.local_into();
-                        aligned = aligned * 4.local_into();
+                        let aligned = Register("PC+") & 0xFFFFFFFC.local_into();
 
                         let address = aligned - imm;
                         if (add) {
@@ -1157,8 +1155,7 @@ impl Convert for (usize, V7Operation) {
                         ) from ldrsb
                     );
                     pseudo!([
-                        let base = Register("PC+")/4.local_into();
-                        base*=4.local_into();
+                        let base = Register("PC+") & 0xFFFFFFFC.local_into();
 
                         let address = base - imm;
                         if (add) {
@@ -1255,8 +1252,7 @@ impl Convert for (usize, V7Operation) {
                         ) from ldrsh
                     );
                     pseudo!([
-                        let base = Register("PC+")/4.local_into();
-                        base *= 4.local_into();
+                        let base = Register("PC+")& 0xFFFFFFFC.local_into();
 
                         let address = base - imm;
                         if (add) {
