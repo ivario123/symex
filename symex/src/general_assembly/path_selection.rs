@@ -52,6 +52,7 @@ impl DFSPathSelection {
         match self.paths.pop() {
             Some(path) => {
                 path.state.constraints.pop();
+                println!("Re-starting path \nPC:{:#10x}\ncondition:{:?}",path.state.last_pc,path.constraints);
                 Some(path)
             }
             None => None,

@@ -110,6 +110,7 @@ impl Arch for ArmV7EM {
     }
 
     fn translate(&self, buff: &[u8], state: &GAState) -> Result<Instruction, ArchError> {
+        println!("Decoding {:?}",buff);
         let buff2 = buff;
         let v6_instr = armv6_m_instruction_parser::parse(buff2);
 
@@ -122,7 +123,8 @@ impl Arch for ArmV7EM {
 
         match v6_instr {
             Ok(v6) => {
-                v6.equal(&instr);
+                // Try to find dissparities.
+                assert!(v6.equal(&instr));
             }
             _ => {}
         }

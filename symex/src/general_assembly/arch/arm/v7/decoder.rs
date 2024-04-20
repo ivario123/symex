@@ -384,22 +384,15 @@ impl Convert for (usize, V7Operation) {
                     let mut ret = vec![];
                     pseudo!(ret.extend[
                         let shift_n = rm<7:0>;
-                        let result = rn asr rm;
-                    ]);
-                    
-                    if s {
-                        pseudo!(ret.extend[
+                        let result = rn asr shift_n;
+                        if (s) {
                             SetZFlag(result);
                             SetNFlag(result);
-                        ]);
-                        ret.push(Operation::SetCFlagSra{
-                            operand: rn,
-                            shift: shift_n
-                        });
-                    }
-                    pseudo!(ret.extend[
+                            SetCFlag(rn,shift_n,rsa);
+                        }
                         rd = result;
                     ]);
+                    
                     ret
                 }
                 V7Operation::B(b) => {
@@ -605,8 +598,8 @@ impl Convert for (usize, V7Operation) {
                         let result = rn - shifted;
                         SetNFlag(result);
                         SetZFlag(result);
-                        SetCFlag(rn,shifted,true,false);
-                        SetVFlag(rn,shifted,true,false);
+                        SetCFlag(rn,shifted,sub);
+                        SetVFlag(rn,shifted,sub);
                     ]);
                     ret
                 }
@@ -1252,7 +1245,7 @@ impl Convert for (usize, V7Operation) {
                         ) from ldrsh
                     );
                     pseudo!([
-                        let base = Register("PC+")& 0xFFFFFFFC.local_into();
+                        let base = Register("PC+") & 0xFFFFFFFC.local_into();
 
                         let address = base - imm;
                         if (add) {
@@ -2219,30 +2212,16 @@ impl Convert for (usize, V7Operation) {
                             ) from sbc);
                     let mut ret = Vec::with_capacity(7);
                     pseudo!(ret.extend[
-                        let intermediate = ! imm;
-                        let result = rn adc imm;
+                        let intermediate = !imm;
+                        let result = rn adc intermediate;
+                        if (s) {
+                            SetZFlag(result);
+                            SetNFlag(result);
+                            SetCFlag(rn,imm,sbc);
+                            SetVFlag(rn,imm,sbc);
+                        }
                         rd = result;
                     ]);
-                    if s {
-                        ret.extend(
-                            [
-                            Operation::SetZFlag(result.clone()),
-                            Operation::SetNFlag(result.clone()),
-                            Operation::SetCFlag {
-                                operand1: rn.clone(),
-                                operand2: imm.clone(),
-                                sub: false,
-                                carry: true
-                            },
-                            Operation::SetVFlag {
-                                operand1: rn.clone(),
-                                operand2: imm.clone(),
-                                sub: false,
-                                carry: true
-                            }
-                            ]
-                        );
-                    }
                     ret
                 }
                 V7Operation::SbcRegister(sbc) => {
@@ -3178,7 +3157,7 @@ impl Convert for (usize, V7Operation) {
 
                             let sum2_shifted = sum2<8:1> << 8.local_into();
                             let sum3_shifted = sum3<8:1> << 16.local_into();
-                            let sum4_shifted = sum2<8:1> << 24.local_into();
+                            let sum4_shifted = sum4<8:1> << 24.local_into();
 
                             rd = rd | sum2_shifted;
                             rd = rd | sum3_shifted;
