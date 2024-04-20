@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::smt::DExpr;
 
 use super::state::GAState;
@@ -11,6 +13,29 @@ pub struct Path {
 
     /// Constraints to add before starting execution on this path.
     pub constraints: Vec<DExpr>,
+}
+
+impl Display for Path {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let state = format!("{:}", self.state);
+        let constraints = self
+            .constraints
+            .iter()
+            .enumerate()
+            .map(|(idx, constraint)| format!("| {idx} -> {constraint:?}\n"))
+            .collect::<String>();
+
+        write!(
+            f,
+            "
+- Path
+-------
+- Conditions:
+{constraints}
+-------
+{state}"
+        )
+    }
 }
 
 impl Path {
@@ -52,7 +77,10 @@ impl DFSPathSelection {
         match self.paths.pop() {
             Some(path) => {
                 path.state.constraints.pop();
-                println!("Re-starting path \nPC:{:#10x}\ncondition:{:?}",path.state.last_pc,path.constraints);
+                println!(
+                    "Re-starting path \nPC:{:#10x}\ncondition:{:?}",
+                    path.state.last_pc, path.constraints
+                );
                 Some(path)
             }
             None => None,

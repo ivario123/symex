@@ -113,15 +113,15 @@ impl<'vm> GAExecutor<'vm> {
     fn fork(&mut self, constraint: DExpr) -> Result<()> {
         trace!("Save backtracking path: constraint={:?}", constraint);
         println!(
-        "Mutliple paths detected at :{:?}\nwith constraint {:?}",
-        self.state.get_register("PC".to_owned()).unwrap(),
-        constraint
+            "Mutliple paths detected at :{:?}\nwith constraint {:?}",
+            self.state.get_register("PC".to_owned()).unwrap(),
+            constraint
         );
         // println!("SP :{:?}",self.state.get_register("SP".to_owned()).unwrap());
         // println!("Save backtracking path: constraint={:?}", constraint);
         let forked_state = self.state.clone();
         let path = Path::new(forked_state, Some(constraint));
-        println!("Taking path : {:?}",path);
+        println!("Taking path : {}", path);
 
         self.vm.paths.save_path(path);
         Ok(())

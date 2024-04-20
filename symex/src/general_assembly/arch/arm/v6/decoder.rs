@@ -587,7 +587,12 @@ impl ArmV6M {
                 },
                 GAOperation::SetNFlag(arm_register_to_ga_operand(d)),
                 GAOperation::SetZFlag(arm_register_to_ga_operand(d)),
+                GAOperation::SetCFlagShiftLeft {
+                    operand: arm_register_to_ga_operand(d),
+                    shift: Operand::Immidiate(DataWord::Word32(*imm)),
+                },
             ],
+            //TODO! Add carry flag for all of the shift operations.
             Operation::LSLReg { m, dn } => vec![
                 GAOperation::And {
                     destination: Operand::Local("shift".to_owned()),

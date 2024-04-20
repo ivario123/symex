@@ -1,6 +1,9 @@
 //! Holds the state in general assembly execution.
 
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::Display,
+};
 
 use tracing::{debug, trace};
 
@@ -50,6 +53,42 @@ pub struct GAState {
     instruction_counter: usize,
     has_jumped: bool,
     instruction_conditions: VecDeque<Condition>,
+}
+
+impl Display for GAState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let register_info = self
+            .registers
+            .iter()
+            .map(|(key, value)| format!("| {key} -> {value:?}\n"))
+            .collect::<String>();
+
+        // TODO! Add in a way to display all the written memory addresses.
+
+        let flag_info = self
+            .flags
+            .iter()
+            .map(|(key, value)| format!("| {key} -> {value:?}\n"))
+            .collect::<String>();
+
+        // Write last instructions PC value.
+        write!(
+            f,
+            "
+- GAState @ {:#10x}
+---------------------
+- Registers:
+{register_info}
+---------------------
+- Flags:
+{flag_info}
+---------------------
+- Conditions:
+{:?}
+---------------------",
+            self.last_pc, self.constraints
+        )
+    }
 }
 
 impl GAState {
@@ -307,6 +346,7 @@ impl GAState {
 
     /// Set the value of a flag.
     pub fn set_flag(&mut self, flag: String, expr: DExpr) {
+        let expr = expr.simplify().simplify();
         trace!("flag {} set to {:?}", flag, expr);
         self.flags.insert(flag, expr);
     }
