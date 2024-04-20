@@ -112,15 +112,16 @@ impl<'vm> GAExecutor<'vm> {
     // Fork execution. Will create a new path with `constraint`.
     fn fork(&mut self, constraint: DExpr) -> Result<()> {
         trace!("Save backtracking path: constraint={:?}", constraint);
-        // println!(
-        // "Mutliple paths detected at :{:?}\nwith constraint {:?}",
-        // self.state.get_register("PC".to_owned()).unwrap(),
-        // constraint
-        // );
+        println!(
+        "Mutliple paths detected at :{:?}\nwith constraint {:?}",
+        self.state.get_register("PC".to_owned()).unwrap(),
+        constraint
+        );
         // println!("SP :{:?}",self.state.get_register("SP".to_owned()).unwrap());
         // println!("Save backtracking path: constraint={:?}", constraint);
         let forked_state = self.state.clone();
         let path = Path::new(forked_state, Some(constraint));
+        println!("Taking path : {:?}",path);
 
         self.vm.paths.save_path(path);
         Ok(())
@@ -218,7 +219,7 @@ impl<'vm> GAExecutor<'vm> {
                 let address = self.resolve_address(address, local)?;
                 let ret = self.get_memory(address, *width);
 
-                println!("Read {ret:?} from address {address:?}");
+                // println!("Read {ret:?} from address {address:?}");
                 ret
             }
             Operand::Flag(f) => {
@@ -230,7 +231,7 @@ impl<'vm> GAExecutor<'vm> {
             }
         };
 
-        println!("{operand:?} -> {ret:?}");
+        // println!("{operand:?} -> {ret:?}");
         ret
     }
 
@@ -241,7 +242,7 @@ impl<'vm> GAExecutor<'vm> {
         value: DExpr,
         local: &mut HashMap<String, DExpr>,
     ) -> Result<()> {
-        println!("Setting operand {operand:?} = {value:?}");
+        // println!("Setting operand {operand:?} = {value:?}");
         match operand {
             Operand::Register(v) => {
                 trace!("Setting register {} to {:?}", v, value);
@@ -253,7 +254,7 @@ impl<'vm> GAExecutor<'vm> {
                     self.get_operand_value(&Operand::Local(local_name.to_owned()), local)?;
                 let address = self.resolve_address(address, local)?;
                 self.set_memory(value.clone(), address, *width)?;
-                println!("Wrote {value:?} to address {address:?}");
+                // println!("Wrote {value:?} to address {address:?}");
             }
             Operand::Address(address, width) => {
                 let address = self.get_dexpr_from_dataword(*address);
@@ -355,7 +356,7 @@ impl<'vm> GAExecutor<'vm> {
         // update last pc
         let new_pc = self.state.get_register("PC".to_owned())?;
         self.state.last_pc = new_pc.get_constant().unwrap();
-        println!("PC : {:#04X}", self.state.last_pc & (!0b1));
+        println!("PC : {:#08X}", self.state.last_pc & (!0b1));
 
         // Always increment pc before executing the operations
         self.state.set_register(
@@ -706,7 +707,7 @@ impl<'vm> GAExecutor<'vm> {
                     (true, false) => {
                         let lhs = op1;
                         let rhs = op2.not();
-                        println!("Calculating carry for {lhs:?} - {rhs:?}");
+                        // println!("Calculating carry for {lhs:?} - {rhs:?}");
                         add_with_carry(&lhs, &rhs, &one, self.project.get_word_size()).carry_out
                     }
                     (false, true) => {

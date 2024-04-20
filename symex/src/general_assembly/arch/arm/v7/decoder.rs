@@ -285,7 +285,7 @@ impl Convert for (usize, V7Operation) {
                     consume!((rd,imm,add) from adr);
                     let (rd, imm) = (rd.local_into(), imm.local_into());
                     pseudo!([
-                        let aligned = Register("PC+") & (!(0b11)).local_into();
+                        let aligned = Register("PC+") & 0xFFFFFFFC.local_into();
 
                         let result = aligned - imm;
                         if (add) {
@@ -890,7 +890,7 @@ impl Convert for (usize, V7Operation) {
                     pseudo!([
                        let offset = rm;
                        if (should_shift) {
-                            let offset =  rm << shift;
+                            offset = rm << shift;
                        }
 
                        let address = rn + offset;
@@ -3410,7 +3410,10 @@ impl Convert for (usize, V7Operation) {
                 V7Operation::Uxth(uxth) => {
                     let (rd, rm, rotation) = (uxth.rd.local_into(), uxth.rm.local_into(), uxth.rotation.unwrap_or(0));
                     pseudo!([
-                        let rotated = Ror(rm,rotation.local_into());
+                        let rotated = rm;
+                        if (rotation != 0) {
+                            rotated = Ror(rm,rotation.local_into());
+                        }
                         rd = ZeroExtend(rotated<15:0>,32);
                     ])
                 }

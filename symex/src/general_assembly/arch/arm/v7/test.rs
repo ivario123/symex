@@ -2410,8 +2410,8 @@ fn test_bl() {
         .expect("Malformed instruction");
 
     test!(executor {
-        register PC == 0x106,
-        register LR == 0x103,
+        register PC == 0x108,
+        register LR == 0x105,
         flag C == 0,
         flag V == 0,
         flag N == 0,
@@ -2438,6 +2438,8 @@ fn test_bl() {
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
 
+    // TODO! Discuss this, the spec is the same for the v6 and the v7 but the v6 only supports
+    // 16 bit instructions so this might be a fulhack?
     test!(executor {
         register PC == 0x106,
         register LR == 0x102, // It should be one less since V6 does not account for the error bit.
