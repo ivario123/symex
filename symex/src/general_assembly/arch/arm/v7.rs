@@ -54,13 +54,27 @@ impl Arch for ArmV7EM {
             Regex::new(r"^symbolic_size<.+>$").unwrap(),
             PCHook::Intrinsic(symbolic_sized),
         ));
+        // §B1.4 Specifies that R[15] => Addr(Current instruction) + 4
+        //
+        // This can be translated in to
+        //
+        // PC - Size(prev instruction) / 8 + 4
+        // as PC points to the next instruction, we
+        //
+        //
+        // Or we can simply take the previous PC + 4.
         let read_pc: RegisterReadHook = |state| {
-            let pc = state.get_register("PC".to_owned()).unwrap();
-            let pc = pc.simplify();
-            let size = state.current_instruction.clone().unwrap().instruction_size;
-            let two = state.ctx.from_u64((size as u64) / 8u64, 32);
-            let four = state.ctx.from_u64(4, 32);
-            Ok(pc.sub(&two).add(&four).simplify())
+            // let pc = state.get_register("PC".to_owned()).unwrap();
+            // let pc = pc.simplify();
+            // let size = state.current_instruction.clone().unwrap().instruction_size;
+            // let two = state.ctx.from_u64((size as u64) / 8u64, 32);
+            // let four = state.ctx.from_u64(4, 32);
+            let new_pc = state
+                .ctx
+                .from_u64(state.last_pc + 4, state.project.get_word_size())
+                .simplify();
+            // Ok(pc.sub(&two).add(&four).simplify())
+            Ok(new_pc)
         };
 
         let read_sp: RegisterReadHook = |state| {
