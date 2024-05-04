@@ -27,15 +27,14 @@ pub fn validate_macro_derive(input: TokenStream) -> TokenStream {
                         }
 
                         variants.push(
-                            quote!(if let #id::#var_id { #(#fields, )* } = input { #(#fields.is_valid() &&)* true } else ),
+                            quote!(if let #id::#var_id { #(#fields, )* } = self { #(#fields.is_valid() &&)* true } else ),
                         );
                     }
                     Fields::Unnamed(_) => {
-                        variants
-                            .push(quote!(if let #id::#var_id(t) = input { t.is_valid() } else ));
+                        variants.push(quote!(if let #id::#var_id(t) = self { t.is_valid() } else ));
                     }
                     Fields::Unit => {
-                        variants.push(quote!(if let #id::#var_id = input { true } else ));
+                        variants.push(quote!(if let #id::#var_id = self { true } else ));
                     }
                 }
             }
@@ -49,15 +48,10 @@ pub fn validate_macro_derive(input: TokenStream) -> TokenStream {
 
     let expanded = quote!(
         impl symex_lib::Valid for #id {
-            #[inline(never)]
             fn is_valid(&self) -> bool {
-                let input = &unsafe {
-                    let raw_pointer = core::ptr::addr_of!(self);
-                    core::ptr::read_volatile(raw_pointer as *const Self)
-                };
                 #(#exp)*
                 {
-                    false
+                    symex_lib::suppress_path()
                 }
             }
         }

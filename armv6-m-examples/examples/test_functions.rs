@@ -145,6 +145,18 @@ fn test_any_u64() -> u64 {
     }
 }
 
+#[inline(never)]
+fn test_assume_llvm() -> u8 {
+    let n = any();
+    test_assume(n)
+}
+
+#[inline(never)]
+fn simple_loop_llvm() -> u8 {
+    let n = any();
+    simple_loop(n)
+}
+
 fn run_function(f: fn(u8) -> u8) {
     for n in 0..u8::MAX {
         let r = f(n);
@@ -191,6 +203,8 @@ fn main() -> ! {
     let n = test_any_u64();
     info!("n: {}", n);
     nop_loop();
+    simple_loop_llvm();
+    test_assume_llvm();
     loop {}
 }
 

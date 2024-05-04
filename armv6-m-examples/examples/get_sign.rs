@@ -3,7 +3,7 @@
 //! Simple example.
 //!
 //! ```shell
-//! cargo symex --elf --example get_sign --function get_sign
+//! cargo symex --example get_sign --function get_sign
 //! ```
 use panic_halt as _;
 use rp2040_hal::entry;

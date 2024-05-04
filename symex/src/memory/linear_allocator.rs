@@ -2,8 +2,7 @@ use tracing::debug;
 
 use super::{MemoryError, BITS_IN_BYTE};
 
-/// Simple bump allocator that starts allocating addresses at
-/// `LinearAllocator::ALLOC_START`
+/// Simple bump allocator that starts allocating addresses at `LinearAllocator::ALLOC_START`
 #[derive(Debug, Clone, Default)]
 pub struct LinearAllocator {
     /// Pointer to next available address to allocate at.
