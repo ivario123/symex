@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use super::state::GAState;
 use crate::smt::DExpr;
 
@@ -12,29 +10,6 @@ pub struct Path {
 
     /// Constraints to add before starting execution on this path.
     pub constraints: Vec<DExpr>,
-}
-
-impl Display for Path {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let state = format!("{:}", self.state);
-        let constraints = self
-            .constraints
-            .iter()
-            .enumerate()
-            .map(|(idx, constraint)| format!("| {idx} -> {constraint:?}\n"))
-            .collect::<String>();
-
-        write!(
-            f,
-            "
-- Path
--------
-- Conditions:
-{constraints}
--------
-{state}"
-        )
-    }
 }
 
 impl Path {

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use armv6_m_instruction_parser::instructons::Operation as V6Operation;
 use decoder::Convert;
 use disarmv7::prelude::{Operation as V7Operation, *};
@@ -119,6 +121,12 @@ impl Arch for ArmV7EM {
             max_cycle: timing,
             memory_access: Self::memory_access(&instr.1),
         })
+    }
+}
+
+impl Display for ArmV7EM {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ARMv7-M")
     }
 }
 

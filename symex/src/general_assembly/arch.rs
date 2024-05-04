@@ -7,7 +7,7 @@
 //! architecture specific hooks.
 
 pub mod arm;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use object::File;
 use thiserror::Error;
@@ -74,7 +74,7 @@ pub enum ParseError {
 ///
 /// Denotes that the implementer can be treated as an architecture in this
 /// crate.
-pub trait Arch: Debug {
+pub trait Arch: Debug + Display {
     /// Converts a slice of bytes to an [`Instruction`]
     fn translate(&self, buff: &[u8], state: &GAState) -> Result<Instruction, ArchError>;
 
@@ -86,7 +86,7 @@ pub trait Arch: Debug {
 ///
 /// This trait denotes that the implementer can discern between the different
 /// variants of architectures in the family using only the [`File`].
-pub trait Family: Debug {
+pub trait Family: Debug  {
     /// Tries to convert a given binary to an architecture in the family.
     fn try_from(file: &File) -> Result<Box<dyn Arch>, ArchError>;
 }

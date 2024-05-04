@@ -1,9 +1,6 @@
 //! Holds the state in general assembly execution.
 
-use std::{
-    collections::{HashMap, VecDeque},
-    fmt::Display,
-};
+use std::collections::{HashMap, VecDeque};
 
 use general_assembly::{condition::Condition, operand::DataWord};
 use tracing::{debug, trace};

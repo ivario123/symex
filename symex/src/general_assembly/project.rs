@@ -276,6 +276,7 @@ impl Project {
             _ => todo!(),
         }
         .unwrap();
+        println!("Running for Architecture {}", architecture);
         architecture.add_hooks(cfg);
         let pc_hooks = cfg.pc_hooks.clone();
 

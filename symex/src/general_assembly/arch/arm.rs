@@ -9,6 +9,8 @@
 pub mod v6;
 pub mod v7;
 
+use std::fmt::Display;
+
 use object::{File, Object, ObjectSection};
 use v6::ArmV6M;
 use v7::ArmV7EM;
@@ -42,6 +44,12 @@ impl Family for Arm {
             ArmIsa::ArmV6M => Ok(Box::new(ArmV6M {})),
             ArmIsa::ArmV7EM => Ok(Box::new(ArmV7EM {})),
         }
+    }
+}
+
+impl Display for Arm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Generic ARM architecture")
     }
 }
 

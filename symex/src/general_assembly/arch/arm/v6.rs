@@ -3,6 +3,8 @@
 pub mod decoder;
 pub mod timing;
 
+use std::fmt::Display;
+
 use armv6_m_instruction_parser::Error;
 use regex::Regex;
 use tracing::trace;
@@ -82,6 +84,12 @@ impl Arch for ArmV6M {
         let ret = armv6_m_instruction_parser::parse(buff).map_err(map_err)?;
         let to_exec = Self::expand(ret);
         Ok(to_exec)
+    }
+}
+
+impl Display for ArmV6M {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"ARMv6-M")
     }
 }
 
