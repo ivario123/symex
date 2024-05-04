@@ -1,32 +1,27 @@
 //! Holds the state in general assembly execution.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
-use general_assembly::{condition::Condition, operand::DataWord};
 use tracing::{debug, trace};
 
-use super::{instruction::Instruction, project::Project};
 use crate::{
-    elf_util::{ExpressionType, Variable},
+    elf_util::{Variable, ExpressionType},
     general_assembly::{
         project::{PCHook, ProjectError},
-        GAError,
-        Result,
+        GAError, Result,
     },
     memory::ArrayMemory,
     smt::{DContext, DExpr, DSolver},
 };
 
+use super::{
+    instruction::{Condition, Instruction},
+    project::Project,
+};
+
 pub enum HookOrInstruction {
     PcHook(PCHook),
     Instruction(Instruction),
-}
-
-#[derive(Clone, Debug)]
-pub struct ContinueInsideInstruction {
-    pub instruction: Instruction,
-    pub index: usize,
-    pub local: HashMap<String, DExpr>,
 }
 
 #[derive(Clone, Debug)]
@@ -42,13 +37,10 @@ pub struct GAState {
     pub last_instruction: Option<Instruction>,
     pub last_pc: u64,
     pub registers: HashMap<String, DExpr>,
-    pub continue_in_instruction: Option<ContinueInsideInstruction>,
-    pub current_instruction: Option<Instruction>,
     pc_register: u64, // this register is special
     flags: HashMap<String, DExpr>,
     instruction_counter: usize,
     has_jumped: bool,
-    instruction_conditions: VecDeque<Condition>,
 }
 
 impl GAState {
@@ -109,9 +101,6 @@ impl GAState {
             last_instruction: None,
             last_pc: pc_reg,
             count_cycles: true,
-            continue_in_instruction: None,
-            current_instruction: None,
-            instruction_conditions: VecDeque::new(),
         })
     }
 
@@ -123,8 +112,7 @@ impl GAState {
         self.has_jumped = true;
     }
 
-    /// Indicates if the last executed instruction was a conditional branch that
-    /// branched.
+    /// Indicates if the last executed instruction was a conditional branch that branched.
     pub fn get_has_jumped(&self) -> bool {
         self.has_jumped
     }
@@ -139,18 +127,7 @@ impl GAState {
         self.instruction_counter
     }
 
-    /// Gets the last instruction that was executed.
-    pub fn get_last_instruction(&self) -> Option<Instruction> {
-        self.last_instruction.clone()
-    }
-
-    /// Checks if the execution is currently inside of a conditional block.
-    pub fn get_in_conditional_block(&self) -> bool {
-        !self.instruction_conditions.is_empty()
-    }
-
-    /// Increment the cycle counter with the cycle count of the last
-    /// instruction.
+    /// Increment the cycle counter with the cycle count of the last instruction.
     pub fn increment_cycle_count(&mut self) {
         // do nothing if cycles should not be counted
         if !self.count_cycles {
@@ -175,19 +152,6 @@ impl GAState {
     /// Update the last instruction that was executed.
     pub fn set_last_instruction(&mut self, instruction: Instruction) {
         self.last_instruction = Some(instruction);
-    }
-
-    pub fn add_instruction_conditions(&mut self, conditions: &Vec<Condition>) {
-        for condition in conditions {
-            self.instruction_conditions.push_back(condition.to_owned());
-        }
-    }
-
-    pub fn get_next_instruction_condition_expression(&mut self) -> Option<DExpr> {
-        // TODO add error handling
-        self.instruction_conditions
-            .pop_front()
-            .map(|condition| self.get_expr(&condition).unwrap())
     }
 
     /// Create a state used for testing.
@@ -234,9 +198,6 @@ impl GAState {
             last_instruction: None,
             last_pc: pc_reg,
             count_cycles: true,
-            continue_in_instruction: None,
-            current_instruction: None,
-            instruction_conditions: VecDeque::new(),
         }
     }
 
@@ -244,24 +205,18 @@ impl GAState {
     pub fn set_register(&mut self, register: String, expr: DExpr) -> Result<()> {
         // crude solution should prbobly change
         if register == "PC" {
+                trace!("setting pc");
             let value = match expr.get_constant() {
-                Some(v) => {
-                    // assert!(v % 4 == 0);
-                    v
-                }
+                Some(v) => v,
                 None => {
                     trace!("not a concrete pc try to generate possible values");
                     let values: Vec<u64> = match self.constraints.get_values(&expr, 500).unwrap() {
-                        crate::smt::Solutions::Exactly(v) => v
-                            .iter()
-                            .map(|n| match n.get_constant() {
-                                Some(v) => v,
-                                None => todo!("e"),
-                            })
-                            .collect(),
-                        crate::smt::Solutions::AtLeast(_v) => todo!(),
+                        crate::smt::Solutions::Exactly(v) => v.iter().map(|n| {match n.get_constant(){
+                            Some(v) => v,
+                            None => todo!("e"),
+                        }}).collect(),
+                        crate::smt::Solutions::AtLeast(v) => todo!(),
                     };
-                    trace!("{} possible PC values", values.len());
                     for v in values {
                         trace!("Possible PC: {:#X}", v);
                     }
@@ -291,7 +246,8 @@ impl GAState {
                 Some(v) => Ok(v.to_owned()),
                 None => {
                     // If register do not exist yet create it with unconstrained value.
-                    let value = self
+                    let value = 
+                        self
                         .ctx
                         .unconstrained(self.project.get_word_size(), &register);
                     self.marked_symbolic.push(Variable {
@@ -301,14 +257,13 @@ impl GAState {
                     });
                     self.registers.insert(register.to_owned(), value.to_owned());
                     Ok(value)
-                }
+                },
             },
         }
     }
 
     /// Set the value of a flag.
     pub fn set_flag(&mut self, flag: String, expr: DExpr) {
-        let expr = expr.simplify().simplify();
         trace!("flag {} set to {:?}", flag, expr);
         self.flags.insert(flag, expr);
     }
@@ -374,7 +329,7 @@ impl GAState {
         match self.project.get_pc_hook(pc) {
             Some(hook) => Ok(HookOrInstruction::PcHook(hook)),
             None => Ok(HookOrInstruction::Instruction(
-                self.project.get_instruction(pc, self)?,
+                self.project.get_instruction(pc)?,
             )),
         }
     }
@@ -394,10 +349,18 @@ impl GAState {
                 if self.project.address_in_range(address_const) {
                     // read from static memmory in project
                     let value = match self.project.get_word(address_const)? {
-                        DataWord::Word64(data) => self.ctx.from_u64(data, 64),
-                        DataWord::Word32(data) => self.ctx.from_u64(data as u64, 32),
-                        DataWord::Word16(data) => self.ctx.from_u64(data as u64, 16),
-                        DataWord::Word8(data) => self.ctx.from_u64(data as u64, 8),
+                        crate::general_assembly::DataWord::Word64(data) => {
+                            self.ctx.from_u64(data, 64)
+                        }
+                        crate::general_assembly::DataWord::Word32(data) => {
+                            self.ctx.from_u64(data as u64, 32)
+                        }
+                        crate::general_assembly::DataWord::Word16(data) => {
+                            self.ctx.from_u64(data as u64, 16)
+                        }
+                        crate::general_assembly::DataWord::Word8(data) => {
+                            self.ctx.from_u64(data as u64, 8)
+                        }
                     };
                     Ok(value)
                 } else {

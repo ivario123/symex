@@ -1,4 +1,3 @@
-#![cfg(feature = "llvm")]
 use std::{path::PathBuf, process::Command};
 
 pub struct Settings {

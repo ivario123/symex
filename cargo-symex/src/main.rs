@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use log::debug;
-#[cfg(feature = "llvm")]
 use std::{fs, path::PathBuf};
 #[cfg(feature = "llvm")]
 use symex::run::{self, RunConfig, SolveFor};
@@ -13,18 +12,11 @@ mod args;
 mod build;
 mod build_c;
 
-#[cfg(not(feature = "llvm"))]
-use args::Args;
-#[cfg(feature = "llvm")]
 use args::{Args, ClangArgs};
-#[cfg(feature = "llvm")]
 use build::{
     generate_build_command, get_extra_filename, get_latest_bc, Features, Settings, Target,
 };
-#[cfg(not(feature = "llvm"))]
-use build::{Features, Settings, Target};
 
-#[cfg(feature = "llvm")]
 use crate::args::Subcommands;
 
 fn main() -> Result<()> {
@@ -199,7 +191,6 @@ fn settings_from_args(opts: &Args) -> Settings {
     }
 }
 
-#[cfg(feature = "llvm")]
 fn run_c(args: ClangArgs) -> Result<()> {
     let opts = clang_settings_from_args(&args);
 
@@ -229,7 +220,6 @@ fn run_c(args: ClangArgs) -> Result<()> {
     // runner::run(&opts.out_path, &fn_name)
 }
 
-#[cfg(feature = "llvm")]
 fn clang_settings_from_args(opts: &ClangArgs) -> build_c::Settings {
     let mut out_path = PathBuf::from("target/c");
     out_path.push(opts.path.file_stem().unwrap());
