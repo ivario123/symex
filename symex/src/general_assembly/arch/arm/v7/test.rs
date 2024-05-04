@@ -199,7 +199,6 @@ fn test_adc_no_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -239,7 +238,6 @@ fn test_adc_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -271,7 +269,6 @@ fn test_adc_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -307,7 +304,6 @@ fn test_adc_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -343,7 +339,6 @@ fn test_adc_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -382,7 +377,6 @@ fn test_adc_imm_no_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -420,7 +414,6 @@ fn test_adc_immediate_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -450,7 +443,6 @@ fn test_adc_immediate_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -492,7 +484,6 @@ fn test_add_no_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -532,7 +523,6 @@ fn test_add_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -564,7 +554,6 @@ fn test_add_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -600,7 +589,6 @@ fn test_add_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -636,7 +624,6 @@ fn test_add_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -675,7 +662,6 @@ fn test_add_imm_no_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -714,7 +700,6 @@ fn test_add_immediate_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -744,7 +729,6 @@ fn test_add_immediate_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -754,58 +738,6 @@ fn test_add_immediate_set_flag() {
         flag C == 1,
         flag Z == 1,
         flag V == 1
-    });
-}
-
-#[test]
-fn test_26() {
-    let mut vm = setup_test_vm();
-    let project = vm.project;
-
-    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
-
-    initiate!(executor {
-        register LastAddr = 537131872;
-        register PC = 268437433;
-        register LR = 268437673;
-        register R0 = 537131872;
-        register R1 = 1;
-        register SP = 537131864;
-        register R7 = 537131880;
-        flag Z = 0;
-        flag N = 0
-    });
-
-    // TODO! Add in instruction equivalent of Instr : Instruction { width: Bit32,
-    // operation: BL { imm: 46 } }
-
-    // here.
-    // let instruction: Operation = AddSPImmediate::builder()
-    //    .set_s(Some(true))
-    //    .set_rd(None)
-    //    .set_imm(16)
-    //    .complete()
-    //    .into();
-    let instruction = Instruction {
-        operations: /*(16, instruction).convert(false)*/ todo!(),
-        memory_access: false,
-        instruction_size: 16,
-        max_cycle: CycleCount::Value(0),
-    };
-    executor
-        .execute_instruction(&instruction)
-        .expect("Malformed instruction");
-
-    test!(executor {
-        register LastAddr == 537131872,
-        register PC == 268437433,
-        register LR == 268437673,
-        register R0 == 537131872,
-        register R1 == 1,
-        register SP == 537131864,
-        register R7 == 537131880,
-        flag Z == 0,
-        flag N == 0
     });
 }
 
@@ -835,7 +767,6 @@ fn test_add_sp_immediate() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -864,7 +795,6 @@ fn test_add_sp_immediate() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -893,7 +823,6 @@ fn test_add_sp_immediate() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -931,7 +860,6 @@ fn test_add_sp_reg() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -961,7 +889,6 @@ fn test_add_sp_reg() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -994,7 +921,6 @@ fn test_add_sp_reg() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1030,7 +956,6 @@ fn test_adr() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1057,7 +982,6 @@ fn test_adr() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1084,7 +1008,6 @@ fn test_adr() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1126,7 +1049,6 @@ fn test_and_no_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1169,7 +1091,6 @@ fn test_and_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1204,7 +1125,6 @@ fn test_and_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1243,7 +1163,6 @@ fn test_and_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1282,7 +1201,6 @@ fn test_and_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1321,7 +1239,6 @@ fn test_and_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1360,7 +1277,6 @@ fn test_and_imm_no_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1399,7 +1315,6 @@ fn test_and_immediate_set_flag() {
         max_cycle: CycleCount::Value(0),
     };
 
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1430,7 +1345,6 @@ fn test_and_immediate_set_flag() {
         max_cycle: CycleCount::Value(0),
     };
 
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1470,7 +1384,6 @@ fn test_and_immediate_set_flag() {
         max_cycle: CycleCount::Value(0),
     };
 
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1501,7 +1414,6 @@ fn test_and_immediate_set_flag() {
         max_cycle: CycleCount::Value(0),
     };
 
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1539,7 +1451,6 @@ fn test_asr_immediate() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1578,7 +1489,6 @@ fn test_asr_immediate_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1610,7 +1520,6 @@ fn test_asr_immediate_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1642,7 +1551,6 @@ fn test_asr_immediate_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1674,7 +1582,6 @@ fn test_asr_immediate_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1713,7 +1620,6 @@ fn test_asr() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1753,7 +1659,6 @@ fn test_asr_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1786,7 +1691,6 @@ fn test_asr_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1819,7 +1723,6 @@ fn test_asr_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1852,7 +1755,6 @@ fn test_asr_set_flag() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1890,7 +1792,6 @@ fn test_b() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1926,7 +1827,6 @@ fn test_b_coditional() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1954,7 +1854,6 @@ fn test_b_coditional() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -1982,7 +1881,6 @@ fn test_b_coditional() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2010,7 +1908,6 @@ fn test_b_coditional() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2043,7 +1940,6 @@ fn test_bx() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2080,7 +1976,6 @@ fn test_bfc() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2118,7 +2013,6 @@ fn test_bfi() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2157,7 +2051,6 @@ fn test_bfi_panic() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2196,7 +2089,6 @@ fn test_bic_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2236,7 +2128,6 @@ fn test_bic_imm_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2268,7 +2159,6 @@ fn test_bic_imm_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2309,7 +2199,6 @@ fn test_bic_reg() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2352,7 +2241,6 @@ fn test_bic_reg_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2387,7 +2275,6 @@ fn test_bic_reg_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2442,7 +2329,6 @@ fn test_bl() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2471,7 +2357,6 @@ fn test_bl() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2515,7 +2400,6 @@ fn test_cmp_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2547,7 +2431,6 @@ fn test_cmp_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2590,7 +2473,6 @@ fn test_ldr_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2623,7 +2505,6 @@ fn test_ldr_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2656,7 +2537,6 @@ fn test_ldr_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2689,7 +2569,6 @@ fn test_ldr_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2721,7 +2600,6 @@ fn test_ldr_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2759,7 +2637,6 @@ fn test_ldr_literal() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2799,7 +2676,6 @@ fn test_ldr_register() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2832,7 +2708,6 @@ fn test_ldr_register() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2868,7 +2743,6 @@ fn test_ldr_register() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2909,7 +2783,6 @@ fn test_ldrh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2941,7 +2814,6 @@ fn test_ldrh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -2973,7 +2845,6 @@ fn test_ldrh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3005,7 +2876,6 @@ fn test_ldrh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3036,7 +2906,6 @@ fn test_ldrh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3077,7 +2946,6 @@ fn test_ldrb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3110,7 +2978,6 @@ fn test_ldrb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3142,7 +3009,6 @@ fn test_ldrb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3174,7 +3040,6 @@ fn test_ldrb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3206,7 +3071,6 @@ fn test_ldrb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3237,7 +3101,6 @@ fn test_ldrb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3276,7 +3139,6 @@ fn test_lsl_immediate() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3310,7 +3172,6 @@ fn test_lsl_immediate() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3351,7 +3212,6 @@ fn test_lsr_immediate() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3385,7 +3245,6 @@ fn test_lsr_immediate() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3426,7 +3285,6 @@ fn test_mov_imm_no_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3467,7 +3325,6 @@ fn test_mov_imm_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3500,7 +3357,6 @@ fn test_mov_imm_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3541,7 +3397,6 @@ fn test_mov_reg_no_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3582,7 +3437,6 @@ fn test_mov_reg_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3615,7 +3469,6 @@ fn test_mov_reg_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3656,7 +3509,6 @@ fn test_mul() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3690,7 +3542,6 @@ fn test_mul() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3738,7 +3589,6 @@ fn test_pop() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3785,7 +3635,6 @@ fn test_push() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3828,7 +3677,6 @@ fn test_rsb() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3860,7 +3708,6 @@ fn test_rsb() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3899,7 +3746,6 @@ fn test_strb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3932,7 +3778,6 @@ fn test_strb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3965,7 +3810,6 @@ fn test_strb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -3998,7 +3842,6 @@ fn test_strb_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4042,7 +3885,6 @@ fn test_strh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4078,7 +3920,6 @@ fn test_strh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4114,7 +3955,6 @@ fn test_strh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4150,7 +3990,6 @@ fn test_strh_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4194,7 +4033,6 @@ fn test_str_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4229,7 +4067,6 @@ fn test_str_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4264,7 +4101,6 @@ fn test_str_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4299,7 +4135,6 @@ fn test_str_imm() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4340,7 +4175,6 @@ fn test_sub_imm_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4375,7 +4209,6 @@ fn test_sub_imm_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4411,7 +4244,6 @@ fn test_sub_imm_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4455,7 +4287,6 @@ fn test_sub_imm_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4491,7 +4322,6 @@ fn test_sub_imm_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4537,7 +4367,6 @@ fn test_sub_reg_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4575,7 +4404,6 @@ fn test_sub_reg_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4616,7 +4444,6 @@ fn test_sub_reg_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4662,7 +4489,6 @@ fn test_sub_reg_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4700,7 +4526,6 @@ fn test_sub_reg_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4743,7 +4568,6 @@ fn test_sub_sp_imm_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4778,7 +4602,6 @@ fn test_sub_sp_imm_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4813,7 +4636,6 @@ fn test_sub_sp_imm_no_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4856,7 +4678,6 @@ fn test_sub_sp_imm_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4891,7 +4712,6 @@ fn test_sub_sp_imm_set_flags() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4934,7 +4754,6 @@ fn test_sub_uxth() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -4969,7 +4788,6 @@ fn test_sub_uxth() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -5015,7 +4833,6 @@ fn test_tb() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
@@ -5046,7 +4863,6 @@ fn test_tb() {
         instruction_size: 16,
         max_cycle: CycleCount::Value(0),
     };
-    println!("Running instruction {:?}", instruction);
     executor
         .execute_instruction(&instruction)
         .expect("Malformed instruction");

@@ -955,7 +955,7 @@ fn add_with_carry(
 mod test {
     use std::collections::HashMap;
 
-    use general_assembly::{condition::Condition, operand::Operand, operation::Operation};
+    use general_assembly::{condition::Condition, operand::{DataWord, Operand}, operation::Operation};
 
     use super::{count_leading_ones, count_ones, count_zeroes};
     use crate::{
@@ -966,7 +966,6 @@ mod test {
             project::Project,
             state::GAState,
             vm::VM,
-            DataWord,
             Endianness,
             WordSize,
         },
