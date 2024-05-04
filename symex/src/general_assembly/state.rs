@@ -5,7 +5,7 @@ use std::{
     fmt::Display,
 };
 
-use general_assembly::condition::Condition;
+use general_assembly::{condition::Condition, operand::DataWord};
 use tracing::{debug, trace};
 
 use super::{instruction::Instruction, project::Project};
@@ -52,42 +52,6 @@ pub struct GAState {
     instruction_counter: usize,
     has_jumped: bool,
     instruction_conditions: VecDeque<Condition>,
-}
-
-impl Display for GAState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let register_info = self
-            .registers
-            .iter()
-            .map(|(key, value)| format!("| {key} -> {:?}\n", value.get_constant()))
-            .collect::<String>();
-
-        // TODO! Add in a way to display all the written memory addresses.
-
-        let flag_info = self
-            .flags
-            .iter()
-            .map(|(key, value)| format!("| {key} -> {:?}\n", value))
-            .collect::<String>();
-
-        // Write last instructions PC value.
-        write!(
-            f,
-            "
-- GAState @ {:#10x}
----------------------
-- Registers:
-{register_info}
----------------------
-- Flags:
-{flag_info}
----------------------
-- Conditions:
-{:?}
----------------------",
-            self.last_pc, self.constraints
-        )
-    }
 }
 
 impl GAState {
@@ -433,18 +397,10 @@ impl GAState {
                 if self.project.address_in_range(address_const) {
                     // read from static memmory in project
                     let value = match self.project.get_word(address_const)? {
-                        crate::general_assembly::DataWord::Word64(data) => {
-                            self.ctx.from_u64(data, 64)
-                        }
-                        crate::general_assembly::DataWord::Word32(data) => {
-                            self.ctx.from_u64(data as u64, 32)
-                        }
-                        crate::general_assembly::DataWord::Word16(data) => {
-                            self.ctx.from_u64(data as u64, 16)
-                        }
-                        crate::general_assembly::DataWord::Word8(data) => {
-                            self.ctx.from_u64(data as u64, 8)
-                        }
+                        DataWord::Word64(data) => self.ctx.from_u64(data, 64),
+                        DataWord::Word32(data) => self.ctx.from_u64(data as u64, 32),
+                        DataWord::Word16(data) => self.ctx.from_u64(data as u64, 16),
+                        DataWord::Word8(data) => self.ctx.from_u64(data as u64, 8),
                     };
                     Ok(value)
                 } else {

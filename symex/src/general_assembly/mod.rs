@@ -1,5 +1,3 @@
-use general_assembly::operand::DataWord;
-
 use self::project::ProjectError;
 use crate::{memory::MemoryError, smt::SolverError};
 
@@ -40,31 +38,6 @@ pub enum WordSize {
     Bit32,
     Bit16,
     Bit8,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum RawDataWord {
-    Word64([u8; 8]),
-    Word32([u8; 4]),
-    Word16([u8; 2]),
-    Word8([u8; 1]),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum DataHalfWord {
-    HalfWord64(u32),
-    HalfWord32(u16),
-    HalfWord16(u8),
-}
-
-impl From<DataHalfWord> for DataWord {
-    fn from(value: DataHalfWord) -> DataWord {
-        match value {
-            DataHalfWord::HalfWord64(v) => DataWord::Word64(v as u64),
-            DataHalfWord::HalfWord32(v) => DataWord::Word32(v as u32),
-            DataHalfWord::HalfWord16(v) => DataWord::Word16(v as u16),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, fs};
 
+use general_assembly::operand::{DataHalfWord, DataWord, RawDataWord};
 use gimli::{DebugAbbrev, DebugInfo, DebugStr};
 use object::{Architecture, Object, ObjectSection, ObjectSymbol};
 use tracing::{debug, trace};
@@ -9,10 +10,7 @@ use super::{
     arch::ArchError,
     instruction::Instruction,
     state::GAState,
-    DataHalfWord,
-    DataWord,
     Endianness,
-    RawDataWord,
     Result as SuperResult,
     RunConfig,
     WordSize,

@@ -103,3 +103,16 @@ impl From<DataWord> for u64 {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+/// Represents a [`DataWord`] as a vector of u8s.
+pub enum RawDataWord {
+    /// A 64 bit word.
+    Word64([u8; 8]),
+    /// A 32 bit word.
+    Word32([u8; 4]),
+    /// A 16 bit word.
+    Word16([u8; 2]),
+    /// A 8 bit word.
+    Word8([u8; 1]),
+}
