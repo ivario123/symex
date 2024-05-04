@@ -10,8 +10,8 @@ use crate::smt::SolverError;
 /// The number of bits per byte the memory system expects.
 pub const BITS_IN_BYTE: u32 = 8;
 
-/// Converts number of bits to bytes, returning an error if `bits` are not a multiple of
-/// `[BITS_IN_BYTE]`.
+/// Converts number of bits to bytes, returning an error if `bits` are not a
+/// multiple of `[BITS_IN_BYTE]`.
 pub fn to_bytes(size: u64) -> Result<u64, MemoryError> {
     if size % BITS_IN_BYTE as u64 != 0 {
         Err(MemoryError::BitsNotMultipleOfBytes(size))
@@ -35,7 +35,8 @@ pub enum MemoryError {
     #[error("Tried to allocate with a size of zero")]
     ZeroSizedAllocation,
 
-    /// When wanting a size in bytes, if the bits don't cleanly map to a certain amount of bytes.
+    /// When wanting a size in bytes, if the bits don't cleanly map to a certain
+    /// amount of bytes.
     #[error("Number of bits {0} is not a multiple of bytes")]
     BitsNotMultipleOfBytes(u64),
 
@@ -51,8 +52,8 @@ pub enum MemoryError {
     #[error("Null pointer encountered")]
     NullPointer,
 
-    /// Each allocation has a respective size, this is returned when a read starts inside one
-    /// allocation and ends outside of it.
+    /// Each allocation has a respective size, this is returned when a read
+    /// starts inside one allocation and ends outside of it.
     #[error("Out of bounds")]
     OutOfBounds,
 

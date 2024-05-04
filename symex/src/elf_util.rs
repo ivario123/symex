@@ -1,18 +1,22 @@
-//! Utility structures mostly related to passing information to runner and display to user.
-use crate::general_assembly::state::GAState;
-use crate::general_assembly::GAError;
-use colored::*;
+//! Utility structures mostly related to passing information to runner and
+//! display to user.
 use core::fmt::{self, Write};
+
+use colored::*;
 use indenter::indented;
 
-use crate::smt::DExpr;
+use crate::{
+    general_assembly::{state::GAState, GAError},
+    smt::DExpr,
+};
 
 /// Result for a single path of execution.
 ///
-/// This contains which path it was, if it succeded or not. If it failed the error will have a
-/// stack trace to where the error occured.
+/// This contains which path it was, if it succeded or not. If it failed the
+/// error will have a stack trace to where the error occured.
 ///
-/// All input variables and variables used in `symbolic` calls will also have solutions available.
+/// All input variables and variables used in `symbolic` calls will also have
+/// solutions available.
 #[derive(Debug)]
 pub struct VisualPathResult {
     /// Which path this is.
@@ -20,8 +24,8 @@ pub struct VisualPathResult {
 
     /// The final value from the path.
     ///
-    /// If the path failed the reason vill be in the error. Otherwise there will be a value
-    /// unless the analyzed function returned void.
+    /// If the path failed the reason vill be in the error. Otherwise there will
+    /// be a value unless the analyzed function returned void.
     pub result: PathStatus,
 
     /// Variables explicitly marked as symbolic.
@@ -143,8 +147,9 @@ impl fmt::Display for VisualPathResult {
 
 /// Status of the path.
 ///
-/// If the path succeeded the return value (if any) is contained in that variant. Otherwise,
-/// the reason for failure is contained in the `Failure` variant.
+/// If the path succeeded the return value (if any) is contained in that
+/// variant. Otherwise, the reason for failure is contained in the `Failure`
+/// variant.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PathStatus {
     /// The path finished successfully.
@@ -156,14 +161,16 @@ pub enum PathStatus {
 
 /// Detailed description of why a run failed.
 ///
-/// Contains the error message, where the error happend and the stack trace from the point of failure.
+/// Contains the error message, where the error happend and the stack trace from
+/// the point of failure.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ErrorReason {
     /// Error message from the received error.
     pub error_message: String,
 }
 
-/// One line in the stack trace. Contains the name of the function and the line where it occurred.
+/// One line in the stack trace. Contains the name of the function and the line
+/// where it occurred.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LineTrace {
     /// Name of the function.
@@ -175,16 +182,17 @@ pub struct LineTrace {
 
 /// Symbolic variable that should be able to be displayed to an end user.
 ///
-/// Variable can be things such as inputs, variables marked as symbolic and outputs. To show this
-/// to an end user, the variable must have been solved before trying to show it.
+/// Variable can be things such as inputs, variables marked as symbolic and
+/// outputs. To show this to an end user, the variable must have been solved
+/// before trying to show it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variable {
     /// `name` is the source name of the variable, if it exists.
     pub name: Option<String>,
 
-    /// Expression of the variable. This can be multiple values, and the solver should be invoked
-    /// before presenting to the end-user. This allows to skip a (possible expensive) solve if not
-    /// required.
+    /// Expression of the variable. This can be multiple values, and the solver
+    /// should be invoked before presenting to the end-user. This allows to
+    /// skip a (possible expensive) solve if not required.
     pub value: DExpr,
 
     /// Simple representation of the variable.
@@ -203,8 +211,8 @@ impl fmt::Display for Variable {
     }
 }
 
-/// Type information for a an expression. This should be generic enough for all kinds of executor
-/// to support.
+/// Type information for a an expression. This should be generic enough for all
+/// kinds of executor to support.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExpressionType {
     /// Integer value of a certain size in bits.

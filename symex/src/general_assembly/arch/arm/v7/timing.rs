@@ -1,6 +1,6 @@
-use disarmv7::prelude::{Condition, Operation as V7Operation,Register};
-// use general_assembly::operation::Operation;
+use disarmv7::prelude::{Condition, Operation as V7Operation, Register};
 
+// use general_assembly::operation::Operation;
 use crate::general_assembly::{instruction::CycleCount, state::GAState};
 impl super::ArmV7EM {
     pub fn memory_access(instr: &V7Operation) -> bool {
@@ -179,7 +179,8 @@ impl super::ArmV7EM {
             V7Operation::CmpImmediate(_) | V7Operation::CmpRegister(_) => CycleCount::Value(1),
             V7Operation::Cps(_) => CycleCount::Value(2),
             V7Operation::Dbg(_) => CycleCount::Value(1),
-            V7Operation::Dmb(_) => CycleCount::Value(1), /* todo!("This requires a model of barriers") */
+            V7Operation::Dmb(_) => CycleCount::Value(1), /* todo!("This requires a model of
+                                                           * barriers") */
             V7Operation::Dsb(_) => todo!("This requires a model of barriers"),
             V7Operation::EorImmediate(_) | V7Operation::EorRegister(_) => CycleCount::Value(1),
             V7Operation::Isb(_) => todo!("This requires a model of barriers"),
@@ -431,5 +432,3 @@ impl super::ArmV7EM {
         }
     }
 }
-
-

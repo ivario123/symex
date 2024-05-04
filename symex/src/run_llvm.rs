@@ -1,6 +1,5 @@
 //! Simple runner that starts symbolic execution on LLVM bitcode.
 //!
-//!
 use std::{
     path::Path,
     time::{Duration, Instant},
@@ -23,7 +22,8 @@ pub struct RunConfig {
     /// If concretized inputs should be shown.
     pub solve_inputs: bool,
 
-    /// If concretized values should be displayed for variables passed to `symbolic`.
+    /// If concretized values should be displayed for variables passed to
+    /// `symbolic`.
     pub solve_symbolics: bool,
 
     /// If concretized output values should be shown.
@@ -33,8 +33,8 @@ pub struct RunConfig {
 impl RunConfig {
     /// Determine if the solver should be invoked this specific result.
     ///
-    /// Returns true of all paths should be solved, or if the result variant matches the given
-    /// `SolveFor`.
+    /// Returns true of all paths should be solved, or if the result variant
+    /// matches the given `SolveFor`.
     fn should_solve(&self, result: &PathResult) -> bool {
         match self.solve_for {
             SolveFor::All => true,
@@ -50,7 +50,8 @@ pub enum SolveFor {
     /// All paths.
     All,
 
-    /// Paths which return errors. Currently this is both internal executor errors and program errors.
+    /// Paths which return errors. Currently this is both internal executor
+    /// errors and program errors.
     Error,
 
     /// Paths which are sucessful.
@@ -62,9 +63,9 @@ pub fn run(
     function: impl AsRef<str>,
     cfg: &RunConfig,
 ) -> Result<Vec<VisualPathResult>, LLVMExecutorError> {
-    // As a temporary measure both the smt context and project get leaked, this is only so I don't
-    // have to care about those lifetimes, since they always live for the entire duration of the
-    // run anyway.
+    // As a temporary measure both the smt context and project get leaked, this is
+    // only so I don't have to care about those lifetimes, since they always
+    // live for the entire duration of the run anyway.
     let context = Box::new(DContext::new());
     let context = Box::leak(context);
 
@@ -181,7 +182,8 @@ fn create_error_reason(state: &mut LLVMState, error: AnalysisError) -> ErrorReas
 
     // REMOVE ME
     // inputs = generate_solutions(vm.parameters.iter(), &mut cache, project)?;
-    // symbolics = generate_solutions(vm.state.symbols.iter(), &mut cache, project)?;
+    // symbolics = generate_solutions(vm.state.symbols.iter(), &mut cache,
+    // project)?;
 
     let mut stack_trace = Vec::new();
     for callstack in state.stack_frames.iter().rev() {

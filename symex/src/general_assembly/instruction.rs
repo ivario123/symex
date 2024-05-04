@@ -1,8 +1,8 @@
 //! Describes a general assembly instruction.
 
-use super::state::GAState;
-
 use general_assembly::operation::Operation;
+
+use super::state::GAState;
 
 /// Representing a cycle count for a instruction.
 #[derive(Debug, Clone)]
@@ -29,6 +29,7 @@ pub struct Instruction {
     /// instruction has executed but before the next instruction.
     pub max_cycle: CycleCount,
 
-    /// Denotes wether or not the instruction required access to the underlying memory or not.
+    /// Denotes wether or not the instruction required access to the underlying
+    /// memory or not.
     pub memory_access: bool,
 }

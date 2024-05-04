@@ -22,7 +22,8 @@ mod test_runner_llvm {
         //     .with_max_level(tracing::Level::TRACE)
         //     .finish();
 
-        // tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+        // tracing::subscriber::set_global_default(subscriber).expect("setting default
+        // subscriber failed");
 
         let context = Box::new(DContext::new());
         let context = Box::leak(context);
@@ -35,7 +36,8 @@ mod test_runner_llvm {
         let mut results = Vec::new();
         while let Some((path_result, state)) = vm.run().expect("Failed to run paths") {
             // let inputs = generate_solutions(vm.parameters.iter(), &mut cache, &project)?;
-            // let symbolics = generate_solutions(vm.state.symbols.iter(), &mut cache, &project)?;
+            // let symbolics = generate_solutions(vm.state.symbols.iter(), &mut cache,
+            // &project)?;
 
             let result = match path_result {
                 PathResult::Success(value) => value.map(|value| get_u128_value(value, &state)),

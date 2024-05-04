@@ -6,16 +6,14 @@ use armv6_m_instruction_parser::{
     instructons::{Instruction, Operation},
     registers::{Register, SpecialRegister},
 };
-
 use general_assembly::{
     condition::Condition,
     operand::{DataWord, Operand},
     operation::Operation as GAOperation,
 };
 
-use crate::general_assembly::instruction::Instruction as GAInstruction;
-
 use super::ArmV6M;
+use crate::general_assembly::instruction::Instruction as GAInstruction;
 
 impl ArmV6M {
     pub(super) fn expand(instr: Instruction) -> GAInstruction {
@@ -1080,7 +1078,8 @@ impl ArmV6M {
                 ]
             }
             Operation::SEV => {
-                // sends a hint event to all cores, multicore is not modeled so do nothing for now
+                // sends a hint event to all cores, multicore is not modeled so do nothing for
+                // now
                 vec![]
             }
             Operation::STM { n, reg_list } => {

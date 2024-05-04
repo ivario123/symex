@@ -1,8 +1,11 @@
+use std::rc::Rc;
+
 use boolector::{
     option::{BtorOption, ModelGen},
-    Btor, SolverResult, BV,
+    Btor,
+    SolverResult,
+    BV,
 };
-use std::rc::Rc;
 
 use super::{BoolectorExpr, BoolectorSolverContext};
 use crate::smt::{Solutions, SolverError};
@@ -62,10 +65,12 @@ impl BoolectorIncrementalSolver {
         self.ctx.pop(1);
     }
 
-    /// Solve for the current solver state, and returns if the result is satisfiable.
+    /// Solve for the current solver state, and returns if the result is
+    /// satisfiable.
     ///
-    /// All asserts and assumes are implicitly combined with a boolean and. Returns true or false,
-    /// and [SolverError::Unknown] if the result cannot be determined.
+    /// All asserts and assumes are implicitly combined with a boolean and.
+    /// Returns true or false, and [SolverError::Unknown] if the result
+    /// cannot be determined.
     pub fn is_sat(&self) -> Result<bool, SolverError> {
         let sat_result = self.ctx.sat();
         self.check_sat_result(sat_result)
@@ -78,7 +83,8 @@ impl BoolectorIncrementalSolver {
         self.is_sat()
     }
 
-    /// Solve for the solver state with the assumption of the passed constraints.
+    /// Solve for the solver state with the assumption of the passed
+    /// constraints.
     pub fn is_sat_with_constraints(
         &self,
         constraints: &[BoolectorExpr],
@@ -91,16 +97,17 @@ impl BoolectorIncrementalSolver {
 
     /// Add the constraint to the solver.
     ///
-    /// The passed constraint will be implicitly combined with the current state in a boolean `and`.
-    /// Asserted constraints cannot be removed.
+    /// The passed constraint will be implicitly combined with the current state
+    /// in a boolean `and`. Asserted constraints cannot be removed.
     pub fn assert(&self, constraint: &BoolectorExpr) {
         constraint.0.assert();
     }
 
     /// Find solutions to `expr`.
     ///
-    /// Returns concrete solutions up to `upper_bound`, the returned [`Solutions`] has variants
-    /// for if the number of solution exceeds the upper bound.
+    /// Returns concrete solutions up to `upper_bound`, the returned
+    /// [`Solutions`] has variants for if the number of solution exceeds the
+    /// upper bound.
     pub fn get_values(
         &self,
         expr: &BoolectorExpr,
@@ -124,7 +131,8 @@ impl BoolectorIncrementalSolver {
         result
     }
 
-    /// Returns `true` if `lhs` and `rhs` must be equal under the current constraints.
+    /// Returns `true` if `lhs` and `rhs` must be equal under the current
+    /// constraints.
     pub fn must_be_equal(
         &self,
         lhs: &BoolectorExpr,
@@ -144,8 +152,9 @@ impl BoolectorIncrementalSolver {
 
     /// Find solutions to `expr`.
     ///
-    /// Returns concrete solutions up to a maximum of `upper_bound`. If more solutions are available
-    /// the error [`SolverError::TooManySolutions`] is returned.
+    /// Returns concrete solutions up to a maximum of `upper_bound`. If more
+    /// solutions are available the error [`SolverError::TooManySolutions`]
+    /// is returned.
     pub fn get_solutions2(
         &self,
         expr: &BoolectorExpr,

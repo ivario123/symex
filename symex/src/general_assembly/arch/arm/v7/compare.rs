@@ -6,12 +6,76 @@ use armv6_m_instruction_parser::{
     registers::{Register as V6Register, SpecialRegister as V6SpecialRegister},
 };
 use disarmv7::prelude::{
-    arch::set_flags::LocalUnwrap, Condition as V7Condition, ImmShift, Operation as V7Operation,
-    Register as V7Register, Shift as V7Shift,
+    arch::set_flags::LocalUnwrap,
+    Condition as V7Condition,
+    ImmShift,
+    Operation as V7Operation,
+    Register as V7Register,
+    Shift as V7Shift,
 };
 
 pub(crate) trait LocalEq<T: Sized> {
     fn equal(&self, other: &T) -> bool;
+}
+pub(crate) trait LocalInto<T: Sized> {
+    fn into(self) -> T;
+    fn local_into(self) -> T
+    where
+        Self: Sized,
+    {
+        self.into()
+    }
+    fn into_option(self) -> Option<T>
+    where
+        Self: Sized,
+    {
+        Some(self.into())
+    }
+}
+
+impl LocalInto<V7Condition> for V6Condition {
+    fn into(self) -> V7Condition {
+        match self {
+            V6Condition::EQ => V7Condition::Eq,
+            V6Condition::NE => V7Condition::Ne,
+            V6Condition::CS => V7Condition::Cs,
+            V6Condition::CC => V7Condition::Cc,
+            V6Condition::MI => V7Condition::Mi,
+            V6Condition::PL => V7Condition::Pl,
+            V6Condition::VS => V7Condition::Vs,
+            V6Condition::VC => V7Condition::Vc,
+            V6Condition::HI => V7Condition::Hi,
+            V6Condition::LS => V7Condition::Ls,
+            V6Condition::GE => V7Condition::Ge,
+            V6Condition::LT => V7Condition::Lt,
+            V6Condition::GT => V7Condition::Gt,
+            V6Condition::LE => V7Condition::Le,
+            V6Condition::None => V7Condition::None,
+        }
+    }
+}
+
+impl LocalInto<V7Register> for V6Register {
+    fn into(self) -> V7Register {
+        match self {
+            V6Register::R0 => V7Register::R0,
+            V6Register::R1 => V7Register::R1,
+            V6Register::R2 => V7Register::R2,
+            V6Register::R3 => V7Register::R3,
+            V6Register::R4 => V7Register::R4,
+            V6Register::R5 => V7Register::R5,
+            V6Register::R6 => V7Register::R6,
+            V6Register::R7 => V7Register::R7,
+            V6Register::R8 => V7Register::R8,
+            V6Register::R9 => V7Register::R9,
+            V6Register::R10 => V7Register::R10,
+            V6Register::R11 => V7Register::R11,
+            V6Register::R12 => V7Register::R12,
+            V6Register::SP => V7Register::SP,
+            V6Register::PC => V7Register::PC,
+            V6Register::LR => V7Register::LR,
+        }
+    }
 }
 
 impl LocalEq<V7Condition> for V6Condition {

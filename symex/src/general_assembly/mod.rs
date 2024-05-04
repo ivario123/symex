@@ -1,8 +1,7 @@
-use crate::{memory::MemoryError, smt::SolverError};
+use general_assembly::operand::DataWord;
 
 use self::project::ProjectError;
-
-use general_assembly::operand::DataWord;
+use crate::{memory::MemoryError, smt::SolverError};
 
 pub mod arch;
 pub mod executor;
@@ -85,11 +84,12 @@ pub struct Config {
     /// Maximum amount of concretizations for function pointers. Default is `1`.
     pub max_fn_ptr_resolutions: usize,
 
-    /// Maximum amount of concretizations for a memory address. This does not apply for e.g.
-    /// ArrayMemory, but does apply for ObjectMemory. Default is `100`.
+    /// Maximum amount of concretizations for a memory address. This does not
+    /// apply for e.g. ArrayMemory, but does apply for ObjectMemory. Default
+    /// is `100`.
     pub max_memory_access_resolutions: usize,
 
-    /// Maximum amount of concretizations for memmove, memcpy, memset and other intrisic functions.
-    /// Default is `100`.
+    /// Maximum amount of concretizations for memmove, memcpy, memset and other
+    /// intrisic functions. Default is `100`.
     pub max_intrinsic_concretizations: usize,
 }

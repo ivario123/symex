@@ -1,8 +1,7 @@
 //! Provides cycle counting for the armv6-m instruction set.
 
-use armv6_m_instruction_parser::{
-    instructons:: Operation, registers::Register 
-};
+use armv6_m_instruction_parser::{instructons::Operation, registers::Register};
+
 use crate::general_assembly::{instruction::CycleCount, state::GAState};
 
 pub(crate) fn cycle_count_m0plus_core(operation: &Operation) -> CycleCount {
@@ -99,7 +98,8 @@ pub(crate) fn cycle_count_m0plus_core(operation: &Operation) -> CycleCount {
         Operation::MRS { d: _, sysm: _ } => CycleCount::Value(3),
         Operation::MSRReg { n: _, sysm: _ } => CycleCount::Value(3),
         Operation::MUL { n: _, dm: _ } => {
-            CycleCount::Value(32) // Can be one depending on core implementation might be able to read this from somewhere.
+            CycleCount::Value(32) // Can be one depending on core implementation
+                                  // might be able to read this from somewhere.
         }
         Operation::MVNReg { m: _, d: _ } => CycleCount::Value(1),
         Operation::NOP => CycleCount::Value(1),
@@ -223,7 +223,8 @@ pub(crate) fn cycle_count_m0_core(operation: &Operation) -> CycleCount {
         Operation::MRS { d: _, sysm: _ } => CycleCount::Value(4),
         Operation::MSRReg { n: _, sysm: _ } => CycleCount::Value(4),
         Operation::MUL { n: _, dm: _ } => {
-            CycleCount::Value(32) // Can be one depending on core implementation might be able to read this from somewhere.
+            CycleCount::Value(32) // Can be one depending on core implementation
+                                  // might be able to read this from somewhere.
         }
         Operation::MVNReg { m: _, d: _ } => CycleCount::Value(1),
         Operation::NOP => CycleCount::Value(1),
@@ -266,4 +267,3 @@ pub(crate) fn cycle_count_m0_core(operation: &Operation) -> CycleCount {
         Operation::UDF { imm: _imm } => unimplemented!(),
     }
 }
-

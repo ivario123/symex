@@ -2,19 +2,20 @@ use std::collections::{HashMap, HashSet};
 
 use llvm_ir::{
     constant::{Constant, Expression},
-    instruction::LLVMIntPredicate,
-    instruction::{BasicBlock, Instruction},
-    Function, Global, GlobalVariable, Value,
+    instruction::{BasicBlock, Instruction, LLVMIntPredicate},
+    Function,
+    Global,
+    GlobalVariable,
+    Value,
 };
 use tracing::{debug, trace, warn};
 
 use super::{binop, bit_size, project::Project};
-use crate::vm::{executor::convert_to_map, LLVMExecutorError};
 use crate::{
     memory::ObjectMemory,
     smt::{DContext, DExpr, DSolver},
     util::Variable,
-    vm::Result,
+    vm::{executor::convert_to_map, LLVMExecutorError, Result},
 };
 
 /// Stack frame keeps track of information related to a specific stack frame.
@@ -103,7 +104,8 @@ pub struct Location {
     /// The [`BasicBlock`] that was executed prior to the current basic block.
     pub previous_block: Option<BasicBlock>,
 
-    /// Determines the current instruction to be executed in in the [`BasicBlock`].
+    /// Determines the current instruction to be executed in in the
+    /// [`BasicBlock`].
     pub instr: Option<Instruction>,
 }
 
@@ -256,14 +258,15 @@ pub(crate) fn init_gv(state: &mut LLVMState, gv: &GlobalVariable, addr: u64) {
 
 /// Convert a constant to an expression.
 ///
-/// Requires the final size to not be zero sized. State is required since global references
-/// are allowed in constants.
+/// Requires the final size to not be zero sized. State is required since global
+/// references are allowed in constants.
 pub(crate) fn const_to_expr(state: &mut LLVMState, constant: &Value) -> Result<DExpr> {
     let value = const_to_expr_zero_size(state, constant)?;
     value.ok_or(LLVMExecutorError::UnexpectedZeroSize)
 }
 
-/// Convert a constant to an expression that allows the entire thing to be zero sized.
+/// Convert a constant to an expression that allows the entire thing to be zero
+/// sized.
 ///
 /// State is required since global references are allowed in constants.
 pub(crate) fn const_to_expr_zero_size(

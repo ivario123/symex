@@ -5,21 +5,20 @@ use std::{
     fmt::Display,
 };
 
+use general_assembly::condition::Condition;
 use tracing::{debug, trace};
 
+use super::{instruction::Instruction, project::Project};
 use crate::{
     elf_util::{ExpressionType, Variable},
     general_assembly::{
         project::{PCHook, ProjectError},
-        GAError, Result,
+        GAError,
+        Result,
     },
     memory::ArrayMemory,
     smt::{DContext, DExpr, DSolver},
 };
-
-use super::{instruction::Instruction, project::Project};
-
-use general_assembly::condition::Condition;
 
 pub enum HookOrInstruction {
     PcHook(PCHook),
@@ -60,7 +59,7 @@ impl Display for GAState {
         let register_info = self
             .registers
             .iter()
-            .map(|(key, value)| format!("| {key} -> {value:?}\n"))
+            .map(|(key, value)| format!("| {key} -> {:?}\n", value.get_constant()))
             .collect::<String>();
 
         // TODO! Add in a way to display all the written memory addresses.
@@ -68,7 +67,7 @@ impl Display for GAState {
         let flag_info = self
             .flags
             .iter()
-            .map(|(key, value)| format!("| {key} -> {value:?}\n"))
+            .map(|(key, value)| format!("| {key} -> {:?}\n", value))
             .collect::<String>();
 
         // Write last instructions PC value.
@@ -163,7 +162,8 @@ impl GAState {
         self.has_jumped = true;
     }
 
-    /// Indicates if the last executed instruction was a conditional branch that branched.
+    /// Indicates if the last executed instruction was a conditional branch that
+    /// branched.
     pub fn get_has_jumped(&self) -> bool {
         self.has_jumped
     }
@@ -188,7 +188,8 @@ impl GAState {
         !self.instruction_conditions.is_empty()
     }
 
-    /// Increment the cycle counter with the cycle count of the last instruction.
+    /// Increment the cycle counter with the cycle count of the last
+    /// instruction.
     pub fn increment_cycle_count(&mut self) {
         // do nothing if cycles should not be counted
         if !self.count_cycles {

@@ -1,15 +1,14 @@
 //! Descrebes the VM for general assembly
 
-use crate::{
-    general_assembly::{path_selection::Path, state::GAState},
-    smt::{DContext, DSolver},
-};
-
 use super::{
     executor::{GAExecutor, PathResult},
     path_selection::DFSPathSelection,
     project::Project,
     Result,
+};
+use crate::{
+    general_assembly::{path_selection::Path, state::GAState},
+    smt::{DContext, DSolver},
 };
 
 #[derive(Debug)]

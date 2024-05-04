@@ -18,9 +18,9 @@ use crate::{memory::MemoryError, smt::SolverError};
 
 /// Errors that can occur during analysis.
 ///
-/// These errors are not related to the VM/Executor, but to the analysis itself. The error path
-/// of a `Result` will never contain an `AnalysisError`, those are reservered for errors related
-/// to the execution of the VM/Executor.
+/// These errors are not related to the VM/Executor, but to the analysis itself.
+/// The error path of a `Result` will never contain an `AnalysisError`, those
+/// are reservered for errors related to the execution of the VM/Executor.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AnalysisError {
     // CallDepthExceeded,
@@ -71,8 +71,8 @@ pub enum LLVMExecutorError {
 
 // /// Errors why a certain path failed.
 // ///
-// /// Indiviual errors from the specific VM/Executors should be converted to this more general error
-// #[derive(Debug, thiserror::Error, PartialEq)]
+// /// Indiviual errors from the specific VM/Executors should be converted to
+// this more general error #[derive(Debug, thiserror::Error, PartialEq)]
 // pub enum VMError {
 //     #[error("{}", UNEXPECTED_PARAMETER_MESSAGE)]
 //     UnexpectedParameter,
@@ -90,9 +90,11 @@ pub enum LLVMExecutorError {
 //     Other(String),
 // }
 
-// const UNEXPECTED_PARAMETER_MESSAGE: &str = r#"Parameters for functions are not supported.
+// const UNEXPECTED_PARAMETER_MESSAGE: &str = r#"Parameters for functions are
+// not supported.
 
-// Function parameters are not supported by the system, wrap the function inside another that takes not parameters.
+// Function parameters are not supported by the system, wrap the function inside
+// another that takes not parameters.
 
 // use symbolic_lib::symbolic;
 // fn function_under_test(a: [i32; 3]) {}
@@ -102,5 +104,5 @@ pub enum LLVMExecutorError {
 //     function_under_test(a);
 // }
 
-// Note that returning larger values may also result in the compiler generating code that takes the return value as a parameter instead.
-// "#;
+// Note that returning larger values may also result in the compiler generating
+// code that takes the return value as a parameter instead. "#;

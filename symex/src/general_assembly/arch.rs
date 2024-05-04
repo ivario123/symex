@@ -7,10 +7,12 @@
 //! architecture specific hooks.
 
 pub mod arm;
-use crate::general_assembly::{instruction::Instruction, state::GAState, RunConfig};
-use object::File;
 use std::fmt::Debug;
+
+use object::File;
 use thiserror::Error;
+
+use crate::general_assembly::{instruction::Instruction, state::GAState, RunConfig};
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, Clone, Error)]
 /// General architecture related errors.
@@ -31,7 +33,8 @@ pub enum ArchError {
     #[error("Elf file missing critical section {0}.")]
     MissingSection(&'static str),
 
-    /// Thrown when a different module errors and that error is not convertible in to an [`ArchError`]
+    /// Thrown when a different module errors and that error is not convertible
+    /// in to an [`ArchError`]
     #[error("Generic archerror : {0}.")]
     ImplementorStringError(&'static str),
 
@@ -69,7 +72,8 @@ pub enum ParseError {
 
 /// A generic architecture
 ///
-/// Denotes that the implementer can be treated as an architecture in this crate.
+/// Denotes that the implementer can be treated as an architecture in this
+/// crate.
 pub trait Arch: Debug {
     /// Converts a slice of bytes to an [`Instruction`]
     fn translate(&self, buff: &[u8], state: &GAState) -> Result<Instruction, ArchError>;
@@ -80,8 +84,8 @@ pub trait Arch: Debug {
 
 /// A generic family of [`Architectures`](Arch).
 ///
-/// This trait denotes that the implementer can discern between the different variants
-/// of architectures in the family using only the [`File`].
+/// This trait denotes that the implementer can discern between the different
+/// variants of architectures in the family using only the [`File`].
 pub trait Family: Debug {
     /// Tries to convert a given binary to an architecture in the family.
     fn try_from(file: &File) -> Result<Box<dyn Arch>, ArchError>;

@@ -714,11 +714,13 @@ impl Convert for (usize, V7Operation) {
 
                 }
                 V7Operation::Isb(_) => todo!("This needs to be revisited when the executor can handle it"),
-                V7Operation::It(it) => vec![
+                V7Operation::It(it) => {
+                    vec![
                     Operation::ConditionalExecution { 
                         conditions: it.conds.conditions.into_iter().map(|el| el.local_into()).collect() 
                     }
-                ],
+                ]
+                },
                 V7Operation::Ldm(ldm) => {
                     consume!((
                             rn,

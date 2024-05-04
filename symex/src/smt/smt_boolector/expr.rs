@@ -1,6 +1,7 @@
 #![allow(clippy::len_without_is_empty)]
-use boolector::{Btor, BV};
 use std::{cmp::Ordering, rc::Rc};
+
+use boolector::{Btor, BV};
 
 use super::BoolectorSolverContext;
 
@@ -13,8 +14,8 @@ impl BoolectorExpr {
         self.0.get_width()
     }
 
-    /// Zero-extend the current [Expression] to the passed bit width and return the resulting
-    /// [Expression].
+    /// Zero-extend the current [Expression] to the passed bit width and return
+    /// the resulting [Expression].
     pub fn zero_ext(&self, width: u32) -> Self {
         assert!(self.len() <= width);
         match self.len().cmp(&width) {
@@ -24,8 +25,8 @@ impl BoolectorExpr {
         }
     }
 
-    /// Sign-extend the current [Expression] to the passed bit width and return the resulting
-    /// [Expression].
+    /// Sign-extend the current [Expression] to the passed bit width and return
+    /// the resulting [Expression].
     pub fn sign_ext(&self, width: u32) -> Self {
         assert!(self.len() <= width);
         match self.len().cmp(&width) {
@@ -43,71 +44,76 @@ impl BoolectorExpr {
         }
     }
 
-    /// [Expression] equality check. Both [Expression]s must have the same bit width, the result is
-    /// returned as an [Expression] of width `1`.
+    /// [Expression] equality check. Both [Expression]s must have the same bit
+    /// width, the result is returned as an [Expression] of width `1`.
     pub fn _eq(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0._eq(&other.0))
     }
 
-    /// [Expression] inequality check. Both [Expression]s must have the same bit width, the result is
-    /// returned as an [Expression] of width `1`.
+    /// [Expression] inequality check. Both [Expression]s must have the same bit
+    /// width, the result is returned as an [Expression] of width `1`.
     pub fn _ne(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0._ne(&other.0))
     }
 
-    /// [Expression] unsigned greater than. Both [Expression]s must have the same bit width, the
-    /// result is returned as an [Expression] of width `1`.
+    /// [Expression] unsigned greater than. Both [Expression]s must have the
+    /// same bit width, the result is returned as an [Expression] of width
+    /// `1`.
     pub fn ugt(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0.ugt(&other.0))
     }
 
-    /// [Expression] unsigned greater than or equal. Both [Expression]s must have the same bit
-    /// width, the result is returned as an [Expression] of width `1`.
+    /// [Expression] unsigned greater than or equal. Both [Expression]s must
+    /// have the same bit width, the result is returned as an [Expression]
+    /// of width `1`.
     pub fn ugte(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0.ugte(&other.0))
     }
 
-    /// [Expression] unsigned less than. Both [Expression]s must have the same bit width, the result
-    /// is returned as an [Expression] of width `1`.
+    /// [Expression] unsigned less than. Both [Expression]s must have the same
+    /// bit width, the result is returned as an [Expression] of width `1`.
     pub fn ult(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0.ult(&other.0))
     }
 
-    /// [Expression] unsigned less than or equal. Both [Expression]s must have the same bit width,
-    /// the result is returned as an [Expression] of width `1`.
+    /// [Expression] unsigned less than or equal. Both [Expression]s must have
+    /// the same bit width, the result is returned as an [Expression] of
+    /// width `1`.
     pub fn ulte(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0.ulte(&other.0))
     }
 
-    /// [Expression] signed greater than. Both [Expression]s must have the same bit width, the
-    /// result is returned as an [Expression] of width `1`.
+    /// [Expression] signed greater than. Both [Expression]s must have the same
+    /// bit width, the result is returned as an [Expression] of width `1`.
     pub fn sgt(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0.sgt(&other.0))
     }
 
-    /// [Expression] signed greater or equal than. Both [Expression]s must have the same bit width,
-    /// the result is returned as an [Expression] of width `1`.
+    /// [Expression] signed greater or equal than. Both [Expression]s must have
+    /// the same bit width, the result is returned as an [Expression] of
+    /// width `1`.
     pub fn sgte(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0.sgte(&other.0))
     }
 
-    /// [Expression] signed less than. Both [Expression]s must have the same bit width, the result
-    /// is returned as an [Expression] of width `1`.
+    /// [Expression] signed less than. Both [Expression]s must have the same bit
+    /// width, the result is returned as an [Expression] of width `1`.
     pub fn slt(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0.slt(&other.0))
     }
 
-    /// [Expression] signed less than or equal. Both [Expression]s must have the same bit width,
-    /// the result is returned as an [Expression] of width `1`.
+    /// [Expression] signed less than or equal. Both [Expression]s must have the
+    /// same bit width, the result is returned as an [Expression] of width
+    /// `1`.
     pub fn slte(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         Self(self.0.slte(&other.0))
@@ -279,8 +285,8 @@ impl BoolectorExpr {
         value
     }
 
-    /// Saturated unsigned addition. Adds `self` with `other` and if the result overflows the
-    /// maximum value is returned.
+    /// Saturated unsigned addition. Adds `self` with `other` and if the result
+    /// overflows the maximum value is returned.
     ///
     /// Requires that `self` and `other` have the same width.
     pub fn uadds(&self, other: &Self) -> Self {
@@ -293,8 +299,9 @@ impl BoolectorExpr {
         overflow.ite(&saturated, &result)
     }
 
-    /// Saturated signed addition. Adds `self` with `other` and if the result overflows either the
-    /// maximum or minimum value is returned, depending on the sign bit of `self`.
+    /// Saturated signed addition. Adds `self` with `other` and if the result
+    /// overflows either the maximum or minimum value is returned, depending
+    /// on the sign bit of `self`.
     ///
     /// Requires that `self` and `other` have the same width.
     pub fn sadds(&self, other: &Self) -> Self {
@@ -317,8 +324,9 @@ impl BoolectorExpr {
 
     /// Saturated unsigned subtraction.
     ///
-    /// Subtracts `self` with `other` and if the result overflows it is clamped to zero, since the
-    /// values are unsigned it can never go below the minimum value.
+    /// Subtracts `self` with `other` and if the result overflows it is clamped
+    /// to zero, since the values are unsigned it can never go below the
+    /// minimum value.
     pub fn usubs(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
 
@@ -331,8 +339,8 @@ impl BoolectorExpr {
 
     /// Saturated signed subtraction.
     ///
-    /// Subtracts `self` with `other` with the result clamped between the largest and smallest
-    /// value allowed by the bit-width.
+    /// Subtracts `self` with `other` with the result clamped between the
+    /// largest and smallest value allowed by the bit-width.
     pub fn ssubs(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
 

@@ -1,5 +1,12 @@
 use std::collections::HashMap;
 
+use disarmv7::prelude::{operation::*, *};
+use general_assembly::{
+    operand::{DataWord, Operand},
+    operation::Operation as GAOperation,
+};
+
+use super::ArmV7EM;
 use crate::{
     general_assembly::{
         arch::arm::v7::decoder::Convert,
@@ -8,18 +15,11 @@ use crate::{
         project::Project,
         state::GAState,
         vm::VM,
-        Endianness, WordSize,
+        Endianness,
+        WordSize,
     },
     smt::{DContext, DSolver},
 };
-
-use super::ArmV7EM;
-use general_assembly::{
-    operand::{DataWord, Operand},
-    operation::Operation as GAOperation,
-};
-
-use disarmv7::prelude::{operation::*, *};
 
 macro_rules! get_operand {
     ($exec:ident register $id:ident) => {{
@@ -54,7 +54,8 @@ macro_rules! get_operand {
     }};
 }
 
-/// This can be mis used but will fail at compile time if not correctly structured.
+/// This can be mis used but will fail at compile time if not correctly
+/// structured.
 macro_rules! test {
     ($exec:ident {
         $(
@@ -100,7 +101,8 @@ macro_rules! test {
     };
 }
 
-/// This can be mis used but will fail at compile time if not correctly structured.
+/// This can be mis used but will fail at compile time if not correctly
+/// structured.
 macro_rules! initiate {
     ($exec:ident {
         $(
@@ -140,22 +142,6 @@ macro_rules! initiate {
 }
 
 fn setup_test_vm() -> VM {
-    /*
-        program_memory: Vec<u8>,
-        start_addr: u64,
-        end_addr: u64,
-        word_size: WordSize,
-        endianness: Endianness,
-        architecture: A,
-        symtab: HashMap<String, u64>,
-        pc_hooks: PCHooks,
-        reg_read_hooks: RegisterReadHooks,
-        reg_write_hooks: RegisterWriteHooks,
-        single_memory_read_hooks: SingleMemoryReadHooks,
-        range_memory_read_hooks: RangeMemoryReadHooks,
-        single_memory_write_hooks: SingleMemoryWriteHooks,
-        range_memory_write_hooks: RangeMemoryWriteHooks,
-    */
     // create an empty project
     let mut project = Box::new(Project::manual_project(
         vec![],
@@ -768,6 +754,58 @@ fn test_add_immediate_set_flag() {
         flag C == 1,
         flag Z == 1,
         flag V == 1
+    });
+}
+
+#[test]
+fn test_26() {
+    let mut vm = setup_test_vm();
+    let project = vm.project;
+
+    let mut executor = GAExecutor::from_state(vm.paths.get_path().unwrap().state, &mut vm, project);
+
+    initiate!(executor {
+        register LastAddr = 537131872;
+        register PC = 268437433;
+        register LR = 268437673;
+        register R0 = 537131872;
+        register R1 = 1;
+        register SP = 537131864;
+        register R7 = 537131880;
+        flag Z = 0;
+        flag N = 0
+    });
+
+    // TODO! Add in instruction equivalent of Instr : Instruction { width: Bit32,
+    // operation: BL { imm: 46 } }
+
+    // here.
+    // let instruction: Operation = AddSPImmediate::builder()
+    //    .set_s(Some(true))
+    //    .set_rd(None)
+    //    .set_imm(16)
+    //    .complete()
+    //    .into();
+    let instruction = Instruction {
+        operations: /*(16, instruction).convert(false)*/ todo!(),
+        memory_access: false,
+        instruction_size: 16,
+        max_cycle: CycleCount::Value(0),
+    };
+    executor
+        .execute_instruction(&instruction)
+        .expect("Malformed instruction");
+
+    test!(executor {
+        register LastAddr == 537131872,
+        register PC == 268437433,
+        register LR == 268437673,
+        register R0 == 537131872,
+        register R1 == 1,
+        register SP == 537131864,
+        register R7 == 537131880,
+        flag Z == 0,
+        flag N == 0
     });
 }
 
@@ -2438,8 +2476,8 @@ fn test_bl() {
         .execute_instruction(&instruction)
         .expect("Malformed instruction");
 
-    // TODO! Discuss this, the spec is the same for the v6 and the v7 but the v6 only supports
-    // 16 bit instructions so this might be a fulhack?
+    // TODO! Discuss this, the spec is the same for the v6 and the v7 but the v6
+    // only supports 16 bit instructions so this might be a fulhack?
     test!(executor {
         register PC == 0x106,
         register LR == 0x102, // It should be one less since V6 does not account for the error bit.

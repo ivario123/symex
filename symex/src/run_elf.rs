@@ -1,6 +1,5 @@
 //! Simple runner that starts symbolic execution on LLVM bitcode.
 //!
-//!
 use std::time::Instant;
 
 use regex::Regex;
@@ -9,7 +8,12 @@ use tracing::{debug, info, trace};
 use crate::{
     elf_util::{ErrorReason, PathStatus, VisualPathResult},
     general_assembly::{
-        self, executor::PathResult, project::PCHook, state::GAState, GAError, RunConfig,
+        self,
+        executor::PathResult,
+        project::PCHook,
+        state::GAState,
+        GAError,
+        RunConfig,
     },
     smt::DContext,
 };
@@ -66,8 +70,8 @@ fn add_architecture_independent_hooks(cfg: &mut RunConfig) {
         .push((Regex::new(r"^panic$").unwrap(), PCHook::EndFaliure("panic")));
 }
 
-/// Run symbolic execution on a elf file where `path` is the path to the ELF file and
-/// `function` is the function the execution starts at.
+/// Run symbolic execution on a elf file where `path` is the path to the ELF
+/// file and `function` is the function the execution starts at.
 /// `cfg` can be used to configure how the execution is carried out.
 pub fn run_elf(
     path: &str,
