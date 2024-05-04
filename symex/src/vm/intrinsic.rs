@@ -1,22 +1,26 @@
-//! LLVM support a large number of [intrinsic functions][1] these are not implemented in bitcode.
-//! Thus, these all have to be hooks that are implemented in the system.
+//! LLVM support a large number of [intrinsic functions][1] these are not
+//! implemented in bitcode. Thus, these all have to be hooks that are
+//! implemented in the system.
 //!
 //! [1]: https://llvm.org/docs/LangRef.html#intrinsic-functions
+use std::collections::HashMap;
+
 use llvm_ir::{Type, Value};
 use radix_trie::Trie;
-use std::collections::HashMap;
 use tracing::{debug, trace, warn};
 
-use crate::memory::BITS_IN_BYTE;
-use crate::smt::{DExpr, Solutions};
-use crate::vm::{binop, bit_size, LLVMExecutorError, PathResult, Result};
-use crate::MAX_INTRINSIC_CONCRETIZATIONS;
-
 use super::LLVMExecutor;
+use crate::{
+    memory::BITS_IN_BYTE,
+    smt::{DExpr, Solutions},
+    vm::{binop, bit_size, LLVMExecutorError, PathResult, Result},
+    MAX_INTRINSIC_CONCRETIZATIONS,
+};
 
 /// Check if the given name is an LLVM intrinsic.
 ///
-/// Currently it checks that the name starts with `llvm.` which seems like a good approximation.
+/// Currently it checks that the name starts with `llvm.` which seems like a
+/// good approximation.
 pub fn is_intrinsic(name: &str) -> bool {
     name.starts_with("llvm.")
 }
@@ -25,12 +29,13 @@ pub type Intrinsic = fn(&mut LLVMExecutor<'_>, &[Value]) -> Result<PathResult>;
 
 /// Intrinsic hook storage.
 ///
-/// Keeps track of intrinsics that have only one version such as `llvm.va_start` and those with
-/// multiple versions such as `llvm.abs.*` which is valid for multiple bit lengths.
+/// Keeps track of intrinsics that have only one version such as `llvm.va_start`
+/// and those with multiple versions such as `llvm.abs.*` which is valid for
+/// multiple bit lengths.
 ///
-/// Internally fixed length name intrinsics use a `[std::collections::HashMap]` so all lookups are
-/// constant time. Variable intrinsic names use a `[radix_trie::Trie]` so lookups are linear time of
-/// the retrieved name.
+/// Internally fixed length name intrinsics use a `[std::collections::HashMap]`
+/// so all lookups are constant time. Variable intrinsic names use a
+/// `[radix_trie::Trie]` so lookups are linear time of the retrieved name.
 #[derive(Clone)]
 pub struct Intrinsics {
     /// Fixed length intrinsic values, e.g. `llvm.va_start`.
@@ -38,13 +43,14 @@ pub struct Intrinsics {
 
     /// Intrinsics with a suffix such as `llvm.abs.*`.
     ///
-    /// Note that the field does not care what the suffix is, it only finds the closest ancestor
-    /// (if any).
+    /// Note that the field does not care what the suffix is, it only finds the
+    /// closest ancestor (if any).
     variable: Trie<String, Intrinsic>,
 }
 
 impl Intrinsics {
-    /// Creates a new intrinsic hook storage with all the default intrinsics enabled.
+    /// Creates a new intrinsic hook storage with all the default intrinsics
+    /// enabled.
     pub fn new_with_defaults() -> Self {
         let mut s = Self {
             fixed: HashMap::new(),
@@ -87,20 +93,20 @@ impl Intrinsics {
         self.fixed.insert(name.into(), hook);
     }
 
-    /// Add a variable length intrinsic, e.g. if they support any kind of bit width such as
-    /// `llvm.abs.*`.
+    /// Add a variable length intrinsic, e.g. if they support any kind of bit
+    /// width such as `llvm.abs.*`.
     ///
-    /// Note that it matches for the entire prefix, so to add `llvm.abs.*` the name should only be
-    /// `llvm.abs.`
+    /// Note that it matches for the entire prefix, so to add `llvm.abs.*` the
+    /// name should only be `llvm.abs.`
     fn add_variable(&mut self, name: impl Into<String>, hook: Intrinsic) {
         self.variable.insert(name.into(), hook);
     }
 
-    /// Returns a reference to the hook of the given name. If the hook cannot be found `None` is
-    /// returned.
+    /// Returns a reference to the hook of the given name. If the hook cannot be
+    /// found `None` is returned.
     ///
-    /// It first checks the fixed length names, and if such a name cannot be found it checks the
-    /// variable length names.
+    /// It first checks the fixed length names, and if such a name cannot be
+    /// found it checks the variable length names.
     pub fn get(&self, name: &str) -> Option<&Intrinsic> {
         self.fixed
             .get(name)
@@ -177,7 +183,8 @@ pub fn llvm_memset(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathResu
 
 /// Intrisic to move memory from source to destination.
 ///
-/// Similar to `llvm_memcpy` but `llvm_memmove` allows the two memory locations to overlap.
+/// Similar to `llvm_memcpy` but `llvm_memmove` allows the two memory locations
+/// to overlap.
 pub fn llvm_memmove(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathResult> {
     assert_eq!(args.len(), 4);
     trace!("llvm_memmove");
@@ -187,8 +194,8 @@ pub fn llvm_memmove(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathRes
     let src = vm.state.get_expr(&args[1])?;
     let len = vm.state.get_expr(&args[2])?;
 
-    // TODO: Not sure about the exact semantics when the locations overlap. So copy the bytes
-    // one by one for now.
+    // TODO: Not sure about the exact semantics when the locations overlap. So copy
+    // the bytes one by one for now.
 
     let len = match len.get_constant() {
         Some(len) => len,
@@ -294,9 +301,10 @@ fn binary_op_overflow(
 
     // This has to be special cased a bit compared to regular binary operations.
     //
-    // The result type is a struct so {result, overflow} and for vectors this means {<iX res>, <i1>}
-    // so the results and overflows have to be appended separately until the final return. Which the
-    // regular `binop` does not handle.
+    // The result type is a struct so {result, overflow} and for vectors this means
+    // {<iX res>, <i1>} so the results and overflows have to be appended
+    // separately until the final return. Which the regular `binop` does not
+    // handle.
     let result = match (lhs_value.ty(), rhs_value.ty()) {
         // For integers just perform the operation.
         (Type::Integer(_), Type::Integer(_)) => {
@@ -340,38 +348,38 @@ fn binary_op_overflow(
     Ok(PathResult::Success(Some(result)))
 }
 
-/// Signed addition on any bit width, performs a signed addition and indicates whether an overflow
-/// occurred.
+/// Signed addition on any bit width, performs a signed addition and indicates
+/// whether an overflow occurred.
 pub fn llvm_sadd_with_overflow(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathResult> {
     binary_op_overflow(vm, args, BinaryOpOverflow::SAdd)
 }
 
-/// Unsigned addition on any bit width, performs an unsigned addition and indicates whether an
-/// overflow occurred.
+/// Unsigned addition on any bit width, performs an unsigned addition and
+/// indicates whether an overflow occurred.
 pub fn llvm_uadd_with_overflow(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathResult> {
     binary_op_overflow(vm, args, BinaryOpOverflow::UAdd)
 }
 
-/// Signed subtraction on any bit width, performs a signed subtraction and indicates whether an
-/// overflow occurred.
+/// Signed subtraction on any bit width, performs a signed subtraction and
+/// indicates whether an overflow occurred.
 pub fn llvm_ssub_with_overflow(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathResult> {
     binary_op_overflow(vm, args, BinaryOpOverflow::SSub)
 }
 
-/// Unsigned subtraction on any bit width, performs an unsigned subtraction and indicates whether an
-/// overflow occurred.
+/// Unsigned subtraction on any bit width, performs an unsigned subtraction and
+/// indicates whether an overflow occurred.
 pub fn llvm_usub_with_overflow(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathResult> {
     binary_op_overflow(vm, args, BinaryOpOverflow::USub)
 }
 
-/// Signed multiplication on any bit width, performs a signed multiplication and indicates whether
-/// an overflow occurred.
+/// Signed multiplication on any bit width, performs a signed multiplication and
+/// indicates whether an overflow occurred.
 pub fn llvm_smul_with_overflow(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathResult> {
     binary_op_overflow(vm, args, BinaryOpOverflow::SMul)
 }
 
-/// Unsigned multiplication on any bit width, performs an unsigned multiplication and indicates
-/// whether an overflow occurred.
+/// Unsigned multiplication on any bit width, performs an unsigned
+/// multiplication and indicates whether an overflow occurred.
 pub fn llvm_umul_with_overflow(vm: &mut LLVMExecutor<'_>, args: &[Value]) -> Result<PathResult> {
     binary_op_overflow(vm, args, BinaryOpOverflow::UMul)
 }

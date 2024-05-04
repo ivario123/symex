@@ -1,18 +1,26 @@
 use llvm_ir::{
     instruction::{self, BasicBlock, Instruction, LLVMAtomicRMWBinOp, LLVMIntPredicate},
-    Function, Type, Value,
+    Function,
+    Type,
+    Value,
 };
 use tracing::{debug, trace, warn};
 
+use super::{
+    project::Project,
+    state::LLVMState,
+    vm::VM,
+    AnalysisError,
+    Hook,
+    Intrinsic,
+    LLVMExecutorError,
+    Path,
+    Result,
+};
 use crate::{
     memory::to_bytes_u32,
     smt::{DContext, DExpr, SolverError},
     vm::{Overriden, StackFrame},
-};
-
-use super::{
-    project::Project, state::LLVMState, vm::VM, AnalysisError, Hook, Intrinsic, LLVMExecutorError,
-    Path, Result,
 };
 
 pub struct LLVMExecutor<'vm> {
@@ -71,11 +79,12 @@ impl<'vm> LLVMExecutor<'vm> {
 
     /// Resume execution from a stored path.
     ///
-    /// When we restore the state from a stored path, the VM's call stack is empty. So it cannot
-    /// use the VM's stack to know when to stop execution.
+    /// When we restore the state from a stored path, the VM's call stack is
+    /// empty. So it cannot use the VM's stack to know when to stop
+    /// execution.
     ///
-    /// `resume_execution` instead iteratively executes until all the callsites in the stored state
-    /// have been exhausted.
+    /// `resume_execution` instead iteratively executes until all the callsites
+    /// in the stored state have been exhausted.
     pub fn resume_execution(&mut self) -> Result<PathResult> {
         loop {
             let result = self.execute_function()?;
@@ -165,8 +174,8 @@ impl<'vm> LLVMExecutor<'vm> {
 
     /// Execute a single function.
     ///
-    /// This will iteratively go through each basic block until it hits a terminator that returns
-    /// a value (or void).
+    /// This will iteratively go through each basic block until it hits a
+    /// terminator that returns a value (or void).
     fn execute_function(&mut self) -> Result<CallResult> {
         loop {
             let result = self.execute_basic_block()?;
@@ -193,9 +202,10 @@ impl<'vm> LLVMExecutor<'vm> {
 
     /// Execute a single basic block.
     ///
-    /// Resumes execution from the instruction stored in the current location and runs until it
-    /// hits a terminator. This can either be a value, or a variant denoting a branch has occurred
-    /// and that the callee should call this function again to resume execution in that basic block.
+    /// Resumes execution from the instruction stored in the current location
+    /// and runs until it hits a terminator. This can either be a value, or
+    /// a variant denoting a branch has occurred and that the callee should
+    /// call this function again to resume execution in that basic block.
     fn execute_basic_block(&mut self) -> Result<BlockResult> {
         loop {
             let instruction = self
@@ -288,8 +298,8 @@ impl<'vm> LLVMExecutor<'vm> {
 
     /// Resolve an address expression to a single value.
     ///
-    /// If the address contain more than one possible address, then we create new paths for all
-    /// but one of the addresses.
+    /// If the address contain more than one possible address, then we create
+    /// new paths for all but one of the addresses.
     fn resolve_address(&mut self, address: DExpr) -> Result<DExpr> {
         if let Some(_) = address.get_constant() {
             return Ok(address);
@@ -302,7 +312,8 @@ impl<'vm> LLVMExecutor<'vm> {
             self.fork(constraint)?;
         }
 
-        // If we received more than one possible address, then constrain our current address.
+        // If we received more than one possible address, then constrain our current
+        // address.
         if addresses.len() > 1 {
             let constraint = address._eq(&addresses[0]);
             self.state.constraints.assert(&constraint);
@@ -608,7 +619,8 @@ impl<'vm> LLVMExecutor<'vm> {
         let cmp = self.state.get_expr(&i.cmp())?;
         let new_value = self.state.get_expr(&i.new_value())?;
 
-        // Replace the old value with the new value if the old value matches the comparison value.
+        // Replace the old value with the new value if the old value matches the
+        // comparison value.
         let old_value = self.state.memory.read(&address, new_value.len())?;
         let condition = old_value._eq(&cmp);
         let result = condition.ite(&new_value, &old_value);
@@ -621,8 +633,8 @@ impl<'vm> LLVMExecutor<'vm> {
 
     /// Atomically modify memory.
     ///
-    /// The contents of the address is atomically read, modified and written back. The original
-    /// value is assigned to the resulting register.
+    /// The contents of the address is atomically read, modified and written
+    /// back. The original value is assigned to the resulting register.
     fn atomic_rmw(&mut self, i: &instruction::AtomicRMW) -> Result<InstructionResult> {
         debug!("{i}");
         let address = self.state.get_expr(&i.address())?;
@@ -664,11 +676,11 @@ impl<'vm> LLVMExecutor<'vm> {
         debug!("{i}");
         let ptr_size = self.state.project.ptr_size;
 
-        // The `in_bounds` field is pretty useless for figuring out if the address is actually within
-        // the type. We cannot use any type information here (https://llvm.org/docs/GetElementPtr.html)
+        // The `in_bounds` field is pretty useless for figuring out if the address is
+        // actually within the type. We cannot use any type information here (https://llvm.org/docs/GetElementPtr.html)
         //
-        // So we have to get the actual underlying allocation for this, but as the address is symbolic
-        // that poses a problem.
+        // So we have to get the actual underlying allocation for this, but as the
+        // address is symbolic that poses a problem.
         let address = i.address();
         if !address.ty().is_pointer() {
             panic!("getelementptr address should always be a pointer")
@@ -943,9 +955,9 @@ impl<'vm> LLVMExecutor<'vm> {
         debug!("{i}");
         let condition = self.state.get_expr(&i.condition())?.simplify();
 
-        // The condition for the default term in the switch. The default case is built such that
-        //   C = true ^ (val != path_cond_1) ^ (val != path_cond_2) ^ ...
-        // So if the default one is the only path, we'll still explore.
+        // The condition for the default term in the switch. The default case is built
+        // such that   C = true ^ (val != path_cond_1) ^ (val != path_cond_2) ^
+        // ... So if the default one is the only path, we'll still explore.
         let mut default_cond = self.state.ctx.from_bool(true);
 
         let mut possible_paths = Vec::new();
@@ -1023,8 +1035,8 @@ impl<'vm> LLVMExecutor<'vm> {
 
 /// Perform a binary operation on two operands, returning the result.
 ///
-/// The input types must be either integers or a vector of integers. Vector operations are performed
-/// on a per element basis.
+/// The input types must be either integers or a vector of integers. Vector
+/// operations are performed on a per element basis.
 ///
 /// TODO: No operations currently care about overflows and such.
 pub(crate) fn binop<F>(
@@ -1192,8 +1204,8 @@ pub(crate) fn get_bit_offset_concrete(
 
 /// Get the byte offset.
 ///
-/// This checks that each offset is byte divisible. For struct offsets the expression must be
-/// constant.
+/// This checks that each offset is byte divisible. For struct offsets the
+/// expression must be constant.
 pub(crate) fn byte_offset(
     ty: &Type,
     index: &DExpr,
@@ -1261,11 +1273,11 @@ pub(crate) fn byte_offset(
 
 /// Converts integers, pointers, or vectors.
 ///
-/// Performs a conversion on either (int,int), (ptr,int), (int,ptr), or (vector,vector) with the
-/// passed mapping function.
+/// Performs a conversion on either (int,int), (ptr,int), (int,ptr), or
+/// (vector,vector) with the passed mapping function.
 ///
-/// No type checking is done, if this is of interest they have to be checked before calling this
-/// function.
+/// No type checking is done, if this is of interest they have to be checked
+/// before calling this function.
 pub(crate) fn convert_to_map<F>(
     state: &mut LLVMState,
     value: Value,

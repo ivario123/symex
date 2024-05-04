@@ -1,0 +1,11 @@
+[package]
+name = "any_derive"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0.93"
+quote = "1.0.18"

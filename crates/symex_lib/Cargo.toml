@@ -4,4 +4,9 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-valid_derive = { path = "../valid_derive", version = "*" }
+valid_derive = { path = "../valid_derive", version = "*"}
+any_derive = { path = "../any_derive", version = "*" }
+
+[features]
+# Defines a feature named `llvm` that enables symbolic execution at LLVM-IR level
+llvm = []

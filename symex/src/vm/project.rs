@@ -16,12 +16,15 @@ pub enum ProjectError {
 
 use super::{
     hooks::{Hook, Hooks},
-    is_intrinsic, Intrinsic, Intrinsics,
+    is_intrinsic,
+    Intrinsic,
+    Intrinsics,
 };
 
 /// A project handles both IR [Function]s and [Hook]s.
 ///
-/// This enum allows a [Project] to return either of them during function lookups.
+/// This enum allows a [Project] to return either of them during function
+/// lookups.
 #[derive(Clone, Debug)]
 pub enum FunctionType {
     Function(Function),
@@ -41,8 +44,8 @@ pub struct Project {
     /// All [Module]s.
     pub module: Module,
 
-    /// Size of pointers across all module. The system does not support different pointer sizes
-    /// across different modules.
+    /// Size of pointers across all module. The system does not support
+    /// different pointer sizes across different modules.
     pub ptr_size: u32,
 
     /// Default alignment if none is specified.
@@ -110,8 +113,8 @@ impl Project {
     }
 
     pub fn get_hook(&self, name: &str) -> Option<Hook> {
-        // Demangle name when checking against user-defined hooks. The names in the IR should all be
-        // mangled anyway.
+        // Demangle name when checking against user-defined hooks. The names in the IR
+        // should all be mangled anyway.
         let demangled = demangle(name);
         let demangled_name = demangled.to_string();
         let demangled_name_no_hash = format!("{demangled:#?}");
@@ -126,8 +129,8 @@ impl Project {
 
     pub fn get_function(&self, name: &CStr) -> Option<Overriden> {
         let name = name.to_string_lossy();
-        // Demangle name when checking against user-defined hooks. The names in the IR should all be
-        // mangled anyway.
+        // Demangle name when checking against user-defined hooks. The names in the IR
+        // should all be mangled anyway.
         let demangled = demangle(&name);
         let demangled_name = demangled.to_string();
         let demangled_name_no_hash = format!("{demangled:#?}");

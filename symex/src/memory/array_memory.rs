@@ -1,21 +1,22 @@
 //! Theories-of-array memory.
 //!
-//! This memory model uses theories-of-arrays and supports arbitrary read and writes with symbolic
-//! values. It uses a linear address space which is byte addressable. A single write will split
-//! the symbolic value into byte sized chunks, and write each individually into memory. A read will
-//! concatenate multiple bytes into a single large symbol.
+//! This memory model uses theories-of-arrays and supports arbitrary read and
+//! writes with symbolic values. It uses a linear address space which is byte
+//! addressable. A single write will split the symbolic value into byte sized
+//! chunks, and write each individually into memory. A read will concatenate
+//! multiple bytes into a single large symbol.
 //!
-//! The concatenation on reads will generate more complex expressions compared to other memory
-//! models, and in general this memory model is slower compared to e.g. object memory. However,
-//! it may provide better performance in certain situations.
+//! The concatenation on reads will generate more complex expressions compared
+//! to other memory models, and in general this memory model is slower compared
+//! to e.g. object memory. However, it may provide better performance in certain
+//! situations.
 use tracing::trace;
 
+use super::{MemoryError, BITS_IN_BYTE};
 use crate::{
     general_assembly::Endianness,
     smt::{DArray, DContext, DExpr},
 };
-
-use super::{MemoryError, BITS_IN_BYTE};
 
 /// Memory store backed by smt array
 #[derive(Debug, Clone)]
@@ -60,7 +61,7 @@ impl ArrayMemory {
 
     /// Creates a new memory containing only uninitialized memory.
     pub fn new(ctx: &'static DContext, ptr_size: u32, endianness: Endianness) -> Self {
-        let memory = DArray::new(&ctx, ptr_size as usize, BITS_IN_BYTE as usize, "memory");
+        let memory = DArray::new(ctx, ptr_size as usize, BITS_IN_BYTE as usize, "memory");
 
         Self {
             ctx,
@@ -82,8 +83,9 @@ impl ArrayMemory {
 
     /// Reads `bits` from `addr.
     ///
-    /// If the number of bits are less than `BITS_IN_BYTE` then individual bits can be read, but
-    /// if the number of bits exceed `BITS_IN_BYTE` then full bytes must be read.
+    /// If the number of bits are less than `BITS_IN_BYTE` then individual bits
+    /// can be read, but if the number of bits exceed `BITS_IN_BYTE` then
+    /// full bytes must be read.
     fn internal_read(&self, addr: &DExpr, bits: u32, ptr_size: u32) -> Result<DExpr, MemoryError> {
         let value = if bits < BITS_IN_BYTE {
             self.read_u8(addr).slice(bits - 1, 0)

@@ -1,6 +1,6 @@
 //! Object memory
-//!
 use std::collections::BTreeMap;
+
 use tracing::{trace, warn};
 
 use super::MemoryError;
@@ -110,16 +110,17 @@ impl ObjectMemory {
 
     /// For a symbolic address, get addresses to read or write from.
     ///
-    /// Certain memory models may not support fully symbolic pointers. This function allows the
-    /// memory model to resolve the passed address to any number of locations. The caller is then
-    /// expected to handle the multiple returned addresses by e.g. forking the path of execution.
+    /// Certain memory models may not support fully symbolic pointers. This
+    /// function allows the memory model to resolve the passed address to
+    /// any number of locations. The caller is then expected to handle the
+    /// multiple returned addresses by e.g. forking the path of execution.
     pub fn resolve_addresses(
         &self,
         address: &DExpr,
         upper_bound: usize,
     ) -> Result<Vec<DExpr>, MemoryError> {
         // Fast path if address is a constant.
-        if let Some(_) = address.get_constant() {
+        if address.get_constant().is_some() {
             return Ok(vec![address.clone()]);
         }
 
@@ -142,10 +143,12 @@ impl ObjectMemory {
     fn resolve_address(&self, address: &DExpr) -> Result<(u64, &MemoryObject), MemoryError> {
         let address = address.get_constant().unwrap();
 
-        // Get the memory object with the address that is the closest below the passed address.
-        for obj in self.objects.range(0..=address).rev().take(1) {
-            // TODO: Perform bounds check.
-            return Ok((address, obj.1));
+        // Get the memory object with the address that is the closest below the passed
+        // address.
+
+        // TODO: Add bounds check
+        if let Some(object) = self.objects.range(0..=address).rev().take(1).next() {
+            return Ok((address, object.1));
         }
 
         panic!("Memory object not found");
@@ -157,10 +160,11 @@ impl ObjectMemory {
     ) -> Result<(u64, &mut MemoryObject), MemoryError> {
         let address = address.get_constant().unwrap();
 
-        // Get the memory object with the address that is the closest below the passed address.
-        for obj in self.objects.range_mut(0..=address).rev().take(1) {
+        // Get the memory object with the address that is the closest below the passed
+        // address.
+        if let Some(object) = self.objects.range_mut(0..=address).rev().take(1).next() {
             // TODO: Perform bounds check.
-            return Ok((address, obj.1));
+            return Ok((address, object.1));
         }
 
         panic!("Memory object not found");

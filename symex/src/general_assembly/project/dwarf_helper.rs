@@ -3,18 +3,27 @@
 use std::collections::{HashMap, HashSet};
 
 use gimli::{
-    AttributeValue, DW_AT_low_pc, DW_AT_name, DW_TAG_subprogram, DebugAbbrev, DebugInfo,
-    DebugPubNames, DebugStr, Reader,
+    AttributeValue,
+    DW_AT_low_pc,
+    DW_AT_name,
+    DW_TAG_subprogram,
+    DebugAbbrev,
+    DebugInfo,
+    DebugPubNames,
+    DebugStr,
+    Reader,
 };
 use regex::Regex;
 use tracing::{debug, trace};
 
 use super::{PCHook, PCHooks};
 
-/// Constructs a list of address hook pairs from a list of symbol name hook pairs.
+/// Constructs a list of address hook pairs from a list of symbol name hook
+/// pairs.
 ///
-/// It does this by finding the name of the symbol in the dwarf debug data and if it is a function(subprogram)
-/// it adds the address and hook to the hooks list.
+/// It does this by finding the name of the symbol in the dwarf debug data and
+/// if it is a function(subprogram) it adds the address and hook to the hooks
+/// list.
 #[allow(dead_code)]
 pub fn construct_pc_hooks<R: Reader>(
     hooks: Vec<(Regex, PCHook)>,
@@ -109,7 +118,8 @@ pub fn construct_pc_hooks_no_index<R: Reader>(
         }
     }
     if found_hooks.len() < hooks.len() {
-        debug!("Did not find addresses for all hooks.") // fix a proper error here later
+        debug!("Did not find addresses for all hooks.") // fix a proper error
+                                                        // here later
     }
 
     ret

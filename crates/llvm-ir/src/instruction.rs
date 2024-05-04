@@ -1099,7 +1099,7 @@ impl GetElementPtr {
         let num_indices = unsafe { LLVMGetNumIndices(self.0) };
         (1..=num_indices)
             .map(|i| unsafe { LLVMGetOperand(self.0, i) })
-            .map(|v| Value::new(v))
+            .map(Value::new)
             .collect()
     }
 
@@ -1219,11 +1219,11 @@ impl Phi {
 
         let incoming_values = (0..num_incoming_values)
             .map(|i| unsafe { LLVMGetIncomingValue(self.0, i) })
-            .map(|v| Value::new(v));
+            .map(Value::new);
 
         let incoming_blocks = (0..num_incoming_values)
             .map(|i| unsafe { LLVMGetIncomingBlock(self.0, i) })
-            .map(|v| BasicBlock(v));
+            .map(BasicBlock);
 
         incoming_blocks.zip(incoming_values).collect()
     }
@@ -1274,7 +1274,7 @@ impl Call {
         let num_arguments = unsafe { LLVMGetNumArgOperands(self.0) };
         (0..num_arguments)
             .map(|i| unsafe { LLVMGetOperand(self.0, i) })
-            .map(|v| Value::new(v))
+            .map(Value::new)
             .collect()
     }
 
@@ -1384,12 +1384,12 @@ impl Switch {
         // Operands are stored in pairs: (value, destination).
         let case_value = (1..num_cases)
             .map(|i| unsafe { LLVMGetOperand(self.0, i * 2) })
-            .map(|v| Value::new(v));
+            .map(Value::new);
 
         // Get destination as successor instead, these are always basic blocks.
         let case_bb = (1..num_cases)
             .map(|i| unsafe { LLVMGetSuccessor(self.0, i) })
-            .map(|v| BasicBlock(v));
+            .map(BasicBlock);
 
         case_value.zip(case_bb).collect()
     }
@@ -1408,7 +1408,7 @@ impl IndirectBr {
         let num_destinations = unsafe { LLVMGetNumSuccessors(self.0) };
         (0..num_destinations)
             .map(|i| unsafe { LLVMGetSuccessor(self.0, i) })
-            .map(|v| BasicBlock(v))
+            .map(BasicBlock)
             .collect()
     }
 }
@@ -1430,7 +1430,7 @@ impl Invoke {
         let num_arguments = unsafe { LLVMGetNumArgOperands(self.0) };
         (0..num_arguments)
             .map(|i| unsafe { LLVMGetOperand(self.0, i + 1) })
-            .map(|v| Value::new(v))
+            .map(Value::new)
             .collect()
     }
 
@@ -1500,7 +1500,7 @@ impl CallBr {
         let num_arguments = unsafe { LLVMGetNumArgOperands(self.0) };
         (0..num_arguments)
             .map(|i| unsafe { LLVMGetOperand(self.0, i + 1) })
-            .map(|v| Value::new(v).into())
+            .map(Value::new)
             .collect()
     }
 

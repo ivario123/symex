@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use boolector::{
     option::{BtorOption, NumberFormat},
-    Btor, BV,
+    Btor,
+    BV,
 };
-use std::rc::Rc;
 
 mod expr;
 mod solver;
@@ -25,12 +27,12 @@ impl BoolectorSolverContext {
         BoolectorExpr(BV::new(self.ctx.clone(), bits, Some(name)))
     }
 
-    /// Create a new expression set equal to `1` of size `bits.
+    /// Create a new expression set equal to `1` of size `bits`.
     pub fn one(&self, bits: u32) -> BoolectorExpr {
         BoolectorExpr(boolector::BV::from_u64(self.ctx.clone(), 1, bits))
     }
 
-    /// Create a new expression set to zero of size `bits.
+    /// Create a new expression set to zero of size `bits`.
     pub fn zero(&self, bits: u32) -> BoolectorExpr {
         BoolectorExpr(boolector::BV::zero(self.ctx.clone(), bits))
     }
@@ -50,7 +52,8 @@ impl BoolectorSolverContext {
         BoolectorExpr(boolector::BV::from_binary_str(self.ctx.clone(), bits))
     }
 
-    /// Creates an expression of size `bits` containing the maximum unsigned value.
+    /// Creates an expression of size `bits` containing the maximum unsigned
+    /// value.
     pub fn unsigned_max(&self, bits: u32) -> BoolectorExpr {
         let mut s = String::new();
         s.reserve_exact(bits as usize);
@@ -102,7 +105,8 @@ impl BoolectorSolverContext {
 pub struct BoolectorArray(pub(super) boolector::Array<Rc<Btor>>);
 
 impl BoolectorArray {
-    /// Create a new array where index has size `index_size` and each element has size `element_size`.
+    /// Create a new array where index has size `index_size` and each element
+    /// has size `element_size`.
     pub fn new(
         ctx: &BoolectorSolverContext,
         index_size: usize,

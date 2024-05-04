@@ -1,18 +1,11 @@
 //! A loader that can load all segments from a elf file properly.
 
-use std::any::Any;
-
-use object::{
-    read::elf::{ElfFile, ProgramHeader},
-    File, Object, ObjectSegment,
-};
+use object::{read::elf::ProgramHeader, File, Object};
 pub struct Segment {
     data: Vec<u8>,
     start_address: u64,
     end_address: u64,
 }
-
-pub enum ElfFileType {}
 
 pub struct Segments(Vec<Segment>);
 
@@ -28,7 +21,7 @@ impl Segments {
     pub fn from_file(file: &File) -> Self {
         let elf_file = match file {
             File::Elf32(elf_file) => elf_file,
-            File::Elf64(elf_file) => todo!(),
+            File::Elf64(_elf_file) => todo!(),
             _ => todo!(),
         };
 

@@ -7,8 +7,8 @@ members = [
     "crates/llvm-ir",
     "crates/symex_lib",
     "crates/valid_derive",
-    "armv6-m-examples",
-    "wcet-analasis-example"
+    # "armv6-m-examples", # <- has its own profiles, so not proper member
+    "wcet-analasis-example",
 ]
 exclude = ["symex-llvm-14-legacy"]
 
@@ -16,4 +16,4 @@ exclude = ["symex-llvm-14-legacy"]
 debug = true
 
 [patch.crates-io]
-rtic-monotonics = {git = "https://github.com/rtic-rs/rtic"}
+rtic-monotonics = { git = "https://github.com/rtic-rs/rtic" }
