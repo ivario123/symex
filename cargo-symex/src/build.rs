@@ -1,13 +1,18 @@
 use anyhow::{anyhow, Result};
 use cargo_project::{Artifact, Profile, Project};
+#[cfg(feature = "llvm")]
 use log::debug;
+#[cfg(feature = "llvm")]
 use regex::Regex;
 use std::env;
+#[cfg(feature = "llvm")]
 use std::{
     fs,
     path::{Path, PathBuf},
     process::Command,
 };
+#[cfg(not(feature = "llvm"))]
+use std::{path::PathBuf, process::Command};
 
 /// Build settings.
 pub struct Settings {
@@ -72,6 +77,7 @@ impl Settings {
     }
 
     /// Returns the name of the module.
+    #[cfg(feature = "llvm")]
     pub fn get_module_name(&self) -> Result<String> {
         match &self.target {
             Target::Bin(_) | Target::Lib => {
@@ -129,6 +135,7 @@ pub fn generate_binary_build_command(opts: &Settings) -> Command {
     cargo
 }
 
+#[cfg(feature = "llvm")]
 pub fn generate_build_command(opts: &Settings) -> Command {
     let mut cargo = Command::new("cargo");
     cargo.args(&["rustc", "--verbose", "--color=always"]);
@@ -178,6 +185,7 @@ pub fn generate_build_command(opts: &Settings) -> Command {
 }
 
 /// Retrieves the hash appended to the build output from the compilation step.
+#[cfg(feature = "llvm")]
 pub fn get_extra_filename(output: &str) -> Result<Option<String>> {
     fn get_filename(re: Regex, output: &str) -> Option<String> {
         let captures = re.captures_iter(output).last()?;
@@ -192,6 +200,7 @@ pub fn get_extra_filename(output: &str) -> Result<Option<String>> {
     Ok(get_filename(re, output))
 }
 
+#[cfg(feature = "llvm")]
 pub fn get_latest_bc(dir: impl AsRef<Path>, file_prefix: &str) -> Result<Option<PathBuf>> {
     let mut result = None;
     let mut last_modified = None;

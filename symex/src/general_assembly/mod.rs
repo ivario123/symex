@@ -1,15 +1,13 @@
+use self::project::ProjectError;
 use crate::{memory::MemoryError, smt::SolverError};
 
-use self::project::ProjectError;
-
+pub mod arch;
 pub mod executor;
 pub mod instruction;
 pub mod path_selection;
 pub mod project;
 pub mod run_config;
 pub mod state;
-pub mod translator;
-pub mod translators;
 pub mod vm;
 
 pub use run_config::*;
@@ -42,50 +40,6 @@ pub enum WordSize {
     Bit8,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum DataWord {
-    Word64(u64),
-    Word32(u32),
-    Word16(u16),
-    Word8(u8),
-}
-
-impl Into<u64> for DataWord {
-    fn into(self) -> u64 {
-        match self {
-            DataWord::Word64(v) => v as u64,
-            DataWord::Word32(v) => v as u64,
-            DataWord::Word16(v) => v as u64,
-            DataWord::Word8(v) => v as u64,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum RawDataWord {
-    Word64([u8; 8]),
-    Word32([u8; 4]),
-    Word16([u8; 2]),
-    Word8([u8; 1]),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum DataHalfWord {
-    HalfWord64(u32),
-    HalfWord32(u16),
-    HalfWord16(u8),
-}
-
-impl Into<DataWord> for DataHalfWord {
-    fn into(self) -> DataWord {
-        match self {
-            DataHalfWord::HalfWord64(v) => DataWord::Word64(v as u64),
-            DataHalfWord::HalfWord32(v) => DataWord::Word32(v as u32),
-            DataHalfWord::HalfWord16(v) => DataWord::Word16(v as u16),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum Endianness {
     Little,
@@ -103,11 +57,12 @@ pub struct Config {
     /// Maximum amount of concretizations for function pointers. Default is `1`.
     pub max_fn_ptr_resolutions: usize,
 
-    /// Maximum amount of concretizations for a memory address. This does not apply for e.g.
-    /// ArrayMemory, but does apply for ObjectMemory. Default is `100`.
+    /// Maximum amount of concretizations for a memory address. This does not
+    /// apply for e.g. ArrayMemory, but does apply for ObjectMemory. Default
+    /// is `100`.
     pub max_memory_access_resolutions: usize,
 
-    /// Maximum amount of concretizations for memmove, memcpy, memset and other intrisic functions.
-    /// Default is `100`.
+    /// Maximum amount of concretizations for memmove, memcpy, memset and other
+    /// intrisic functions. Default is `100`.
     pub max_intrinsic_concretizations: usize,
 }

@@ -45,17 +45,17 @@ impl Constant {
             LLVMValueKind::LLVMConstantFPValueKind => Float::new(value_ref).into(),
 
             LLVMValueKind::LLVMConstantDataArrayValueKind => {
-                Constant::Array(Array::new(value_ref).into())
+                Constant::Array(Array::new(value_ref))
             }
             LLVMValueKind::LLVMConstantArrayValueKind => {
-                Constant::Array(Array::new(value_ref).into())
+                Constant::Array(Array::new(value_ref))
             }
 
             LLVMValueKind::LLVMConstantDataVectorValueKind => {
-                Constant::Vector(Vector::new(value_ref).into())
+                Constant::Vector(Vector::new(value_ref))
             }
             LLVMValueKind::LLVMConstantVectorValueKind => {
-                Constant::Vector(Vector::new(value_ref).into())
+                Constant::Vector(Vector::new(value_ref))
             }
 
             LLVMValueKind::LLVMConstantStructValueKind => Structure::new(value_ref).into(),

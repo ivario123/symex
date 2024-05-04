@@ -1,9 +1,38 @@
 # SYMEX
 
-Symbolic execution engine that operates on LLVM IR. Main use case is to analyze Rust programs but
-as it operates on LLVM IR it allows it to analyze all software that can generate LLVM IR.
+Symbolic execution engine that can operate on either LLVM IR or ARMv7-M machine code. Main use is to analyze Rust programs but programs written in other languages can potentially be analyzed.
+Because the library used to read LLVM bytecode is large and cumbersome is the LLVM IR part of the tool hidden behind the feature flag `llvm`.
 
-## Cargo subcommand
+Since Symex was originally written with only LLVM IR execution in mind are the integration of machine code execution not always done coherently.
+Work is ongoing in how the two part should coexist.
+Because of this is the following documentation split up in two different parts one for LLVM IR and one for ARMv6-M machine code.
+
+## ARMv6-M
+
+### Getting started
+
+The easiest way to use Symex is by the cargo-symex tool.
+I can be installed by running:
+```
+cargo install --path cargo-symex
+```
+Then the examples can be executed by first navigating to the `armv6-m-examples` directory and executing:
+```
+cargo symex --elf --example [example name] --function [function name] (--release)
+```
+
+### Additional notes
+- Ta analyse a function it must have a entry in the `.symtab` section of the elf file. All symbols in a elf file can be shown using the `readelf -s [path to elf file]` command. To tell rustc to not mangle the function name the attribute `#[no_mangle]` can be used.
+- When using symex-lib functions or to be able to detect panic the debug-data must be included in teh elf file.
+- A elf file can directly be analyzed with cargo-symex by the `cargo symex --elf --path [path to elf file] --function [function name]`
+- Symex can be directly used as a library see `wcet-analasis-example` directory for examples on how to do that.
+
+### Notes on the max cycle count on armv6-m
+The max cycle count for each path is calculated by counting the number of cycles for each instruction according to [this document](https://developer.arm.com/documentation/ddi0432/c/programmers-model/instruction-set-summary). It assumes a core without wait-states.
+
+## LLVM IR
+
+### Cargo subcommand
 
 A cargo subcommand is available to easily compile Rust programs into bitcode files and run them
 in the symbolic execution engine.
@@ -11,13 +40,13 @@ in the symbolic execution engine.
 It can be installed with
 
 ```shell
-> cargo install --path cargo-symex
+> cargo install --path cargo-symex --features llvm
 ```
 
 For usage instructions see `cargo symex --help`.
 
 
-## Getting started
+### Getting started
 
 Check out the examples contained in `examles/examples`. These can be run with the cargo subcommand
 
@@ -36,24 +65,11 @@ To compile and run the example `examples/rust_simple` using the cargo subcommand
 This will display the results of the analysis of the example, showing all the paths it took and
 concrete values for all inputs and output.
 
-## Analysing machine code from elf files
-Symex can work on machine code by using a separate executor.
-To execute machine code load a elf file using the command `cargo symex --elf [path to elf file] --function [function name]`.
-This functionality i under active development and is not yet future complete.
-There are some notable differences between the llvm-ir executor and this executor namely:
-- Only the assume function, any and symbolic in symex_lib work at the moment.
-- Every variable that is not initialized to a value is assumed to be symbolic.
-- No return value is shown instead all register values att the end of execution is displayed.
-- Only the target `thumbv6m-none-eabi is supported at the moment`.
-- Ta analyse a function it must have a entry in the `.symtab` section of the elf file. All symbols in a elf file can be shown using the `readelf -s [path to elf file]` command. To tell rustc to not mangle the function name the attribute `#[no_mangle]` can be used.
-
-### Notes on the max cycle count on armv6-m
-The max cycle count for each path is calculated by counting the number of cycles for each instruction according to [this document](https://developer.arm.com/documentation/ddi0432/c/programmers-model/instruction-set-summary). It assumes a core without wait-states.
 
 
-## Building
+### Building
 
-### Dependencies
+#### Dependencies
 
 - [LLVM](https://llvm.org/), used as a library for decoding the LLVM-IR (internal representation)
   of the program under analysis.
@@ -62,11 +78,34 @@ The max cycle count for each path is calculated by counting the number of cycles
 
 The project currently uses LLVM 17 which require a relatively recent version of Rust.
 
-### Devcontainer
+#### Devcontainer
 
 As an alternative, a [Dev Container](https://code.visualstudio.com/docs/devcontainers/containers) is provided that automatically installs Rust `1.72` and LLVM 17.
 
 To generate tests use `./symex/compile_tests_dc.sh` instead.
+
+### Making tests work
+
+The tests make use of compiled LLVM IR files which are not tracked by git. To make the tests work
+run
+
+```shell
+> ./scripts/compile_tests.sh
+```
+
+### Known issues
+
+Sometimes when running examples the runner may give
+
+```shell
+error: could not copy "<project_dir>/target/debug/examples/<some_file>.bc" to "<project_dir>/target/debug/examples/<some_file>.bc": No such file or directory (os error 2)
+
+error: could not copy "<project_dir>/target/debug/examples/<some_file>.ll" to "<project_dir>/target/debug/examples/<some_file>.ll": No such file or directory (os error 2)
+
+error: could not compile `examples` due to 2 previous errors
+```
+
+Until the issue is fixed it can remedied by running `cargo clean` and trying again.
 
 ## SYMEX LLVM 14
 
@@ -92,29 +131,19 @@ SMT solver defaults to `boolector`. It is possible to use Z3 instead of Boolecto
 
 To use the devcontainer with this setup, see the notes in `.devcontainer/devcontainer.json`.
 
-## Usage
 
-### Making tests work
-
-The tests make use of compiled LLVM IR files which are not tracked by git. To make the tests work
-run
-
-```shell
-> ./scripts/compile_tests.sh
-```
-
-### Debug output from SYMEX
+## Debug output from SYMEX
 
 The implementation uses the Rust log framework. You can set the logging level to the environment variable `RUST_LOG`. See below example (assumes the cargo-sub command `symex`).
 
 ```shell
-> RUST_LOG=DEBUG cargo symex --example get_sign --function get_sign --release
+> RUST_LOG=DEBUG cargo symex ...
 ```
 
 If you want to narrow down the scope of logging you can give a list of modules to log.
 
 ```shell
-> RUST_LOG="symex=debug" cargo symex --example get_sign --function get_sign --release
+> RUST_LOG="symex=debug" cargo symex ...
 ```
 
 Symex uses different logging levels:
@@ -126,23 +155,10 @@ Symex uses different logging levels:
 You can also narrow down the scope to specific modules, e.g. the executor.
 
 ```shell
-> RUST_LOG="symex::executor=trace" cargo symex --example get_sign --function get_sign --release
+> RUST_LOG="symex::executor=trace" cargo symex ...
 ```
 
 
-## Known issues
-
-Sometimes when running examples the runner may give
-
-```shell
-error: could not copy "<project_dir>/target/debug/examples/<some_file>.bc" to "<project_dir>/target/debug/examples/<some_file>.bc": No such file or directory (os error 2)
-
-error: could not copy "<project_dir>/target/debug/examples/<some_file>.ll" to "<project_dir>/target/debug/examples/<some_file>.ll": No such file or directory (os error 2)
-
-error: could not compile `examples` due to 2 previous errors
-```
-
-Until the issue is fixed it can remedied by running `cargo clean` and trying again.
 
 ## License
 

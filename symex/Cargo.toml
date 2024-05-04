@@ -12,15 +12,21 @@ boolector = { version = "0.4.3", features = ["vendor-lgl"] }
 radix_trie = "0.2.1"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+paste = "1.0.14"
 
 indenter = "0.3"
 colored = "2.0"
 rand = "0.8.5"
 object = "0.32.1"
 
-armv6-m-instruction-parser = "0.1"
+armv6-m-instruction-parser = "0.3.0-rc1"
+# disarmv7 = {git = "https://github.com/ivario123/disarmv7",rev = "3d1c084"}
+disarmv7 = {path = "../../ltu/dissarmv7"}
+transpiler = {path = "./transpiler"}
 gimli = "0.28.0"
 regex = "1.10.2"
+
+general_assembly = { path = "./general_assembly" }
 
 [features]
 # Defines a feature named `llvm` that enables symbolic execution at LLVM-IR level

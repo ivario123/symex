@@ -1,18 +1,24 @@
 use std::{collections::HashMap, fmt::Debug, fs};
 
-use armv6_m_instruction_parser::parse;
+use general_assembly::operand::{DataHalfWord, DataWord, RawDataWord};
 use gimli::{DebugAbbrev, DebugInfo, DebugStr};
-use object::{Architecture, File, Object, ObjectSection, ObjectSymbol};
-use tracing::debug;
+use object::{Architecture, Object, ObjectSection, ObjectSymbol};
+use tracing::{debug, trace};
 
-use crate::{general_assembly::translator::Translatable, memory::MemoryError, smt::DExpr};
-
-use self::segments::{Segment, Segments};
-
+use self::segments::Segments;
 use super::{
+    arch::ArchError,
     instruction::Instruction,
-    state::{self, GAState},
-    DataHalfWord, DataWord, Endianness, RawDataWord, Result as SuperResult, RunConfig, WordSize,
+    state::GAState,
+    Endianness,
+    Result as SuperResult,
+    RunConfig,
+    WordSize,
+};
+use crate::{
+    general_assembly::arch::{arch_from_family, arm::Arm, Arch},
+    memory::MemoryError,
+    smt::DExpr,
 };
 
 mod dwarf_helper;
@@ -32,6 +38,9 @@ pub enum ProjectError {
 
     #[error("Unavalable operation")]
     UnabvalableOperation,
+
+    #[error("Architecture specific error")]
+    ArchError(#[from] ArchError),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -76,7 +85,6 @@ pub struct Project {
     segments: Segments,
     word_size: WordSize,
     endianness: Endianness,
-    architecture: object::Architecture,
     symtab: HashMap<String, u64>,
     pc_hooks: PCHooks,
     reg_read_hooks: RegisterReadHooks,
@@ -85,6 +93,7 @@ pub struct Project {
     range_memory_read_hooks: RangeMemoryReadHooks,
     single_memory_write_hooks: SingleMemoryWriteHooks,
     range_memory_write_hooks: RangeMemoryWriteHooks,
+    architecture: Box<dyn Arch>,
 }
 
 fn construct_register_read_hooks(hooks: Vec<(String, RegisterReadHook)>) -> RegisterReadHooks {
@@ -146,13 +155,13 @@ fn construct_memory_read_hooks(
 }
 
 impl Project {
-    pub fn manual_project(
+    pub fn manual_project<A: Arch + 'static>(
         program_memory: Vec<u8>,
         start_addr: u64,
         end_addr: u64,
         word_size: WordSize,
         endianness: Endianness,
-        architecture: object::Architecture,
+        architecture: A,
         symtab: HashMap<String, u64>,
         pc_hooks: PCHooks,
         reg_read_hooks: RegisterReadHooks,
@@ -166,7 +175,7 @@ impl Project {
             segments: Segments::from_single_segment(program_memory, start_addr, end_addr),
             word_size,
             endianness,
-            architecture,
+            architecture: Box::new(architecture),
             symtab,
             pc_hooks,
             reg_read_hooks,
@@ -176,6 +185,34 @@ impl Project {
             single_memory_write_hooks,
             range_memory_write_hooks,
         }
+    }
+
+    #[cfg(test)]
+    pub fn add_hooks(&mut self) {
+        let mut cfg = RunConfig {
+            memory_read_hooks: Vec::new(),
+            memory_write_hooks: Vec::new(),
+            pc_hooks: Vec::new(),
+            register_read_hooks: Vec::new(),
+            register_write_hooks: Vec::new(),
+            show_path_results: false,
+        };
+        self.architecture.add_hooks(&mut cfg);
+
+        let reg_read_hooks = construct_register_read_hooks(cfg.register_read_hooks.clone());
+        let reg_write_hooks = construct_register_write_hooks(cfg.register_write_hooks.clone());
+
+        let (single_memory_write_hooks, range_memory_write_hooks) =
+            construct_memory_write(cfg.memory_write_hooks.clone());
+        let (single_memory_read_hooks, range_memory_read_hooks) =
+            construct_memory_read_hooks(cfg.memory_read_hooks.clone());
+
+        self.reg_read_hooks = reg_read_hooks;
+        self.reg_write_hooks = reg_write_hooks;
+        self.single_memory_read_hooks = single_memory_read_hooks;
+        self.range_memory_read_hooks = range_memory_read_hooks;
+        self.single_memory_write_hooks = single_memory_write_hooks;
+        self.range_memory_write_hooks = range_memory_write_hooks;
     }
 
     pub fn from_path(path: &str, cfg: &mut RunConfig) -> Result<Self> {
@@ -231,13 +268,16 @@ impl Project {
         let debug_str = obj_file.section_by_name(".debug_str").unwrap();
         let debug_str = DebugStr::new(debug_str.data().unwrap(), gimli_endian);
 
-
-        match architecture {
+        let architecture = match architecture {
             Architecture::Arm => {
-                armv6_m_instruction_parser::instructons::Instruction::add_hooks(cfg)
+                // Get a generic arm arch using dependecy injection
+                arch_from_family::<Arm>(&obj_file)
             }
             _ => todo!(),
         }
+        .unwrap();
+        trace!("Running for Architecture {}", architecture);
+        architecture.add_hooks(cfg);
         let pc_hooks = cfg.pc_hooks.clone();
 
         let pc_hooks =
@@ -287,7 +327,7 @@ impl Project {
 
     pub fn get_memory_write_hook(&self, address: u64) -> Option<MemoryWriteHook> {
         match self.single_memory_write_hooks.get(&address) {
-            Some(hook) => Some(hook.clone()),
+            Some(hook) => Some(*hook),
             None => {
                 for ((start, end), hook) in &self.range_memory_write_hooks {
                     if address >= *start && address < *end {
@@ -301,7 +341,7 @@ impl Project {
 
     pub fn get_memory_read_hook(&self, address: u64) -> Option<MemoryReadHook> {
         match self.single_memory_read_hooks.get(&address) {
-            Some(hook) => Some(hook.clone()),
+            Some(hook) => Some(*hook),
             None => {
                 for ((start, end), hook) in &self.range_memory_read_hooks {
                     if address >= *start && address < *end {
@@ -314,11 +354,7 @@ impl Project {
     }
 
     pub fn address_in_range(&self, address: u64) -> bool {
-        if let Some(_) = self.segments.read_raw_bytes(address, 1) {
-            true
-        } else {
-            false
-        }
+        self.segments.read_raw_bytes(address, 1).is_some()
     }
 
     pub fn get_word_size(&self) -> u32 {
@@ -346,26 +382,18 @@ impl Project {
     }
 
     /// Get the instruction att a address
-    pub fn get_instruction(&self, address: u64) -> Result<Instruction> {
-        debug!("Reading instruction from address: {:#010X}", address);
+    pub fn get_instruction(&self, address: u64, state: &GAState) -> Result<Instruction> {
+        trace!("Reading instruction from address: {:#010X}", address);
         match self.get_raw_word(address)? {
-            RawDataWord::Word64(d) => self.instruction_from_array_ptr(&d),
-            RawDataWord::Word32(d) => self.instruction_from_array_ptr(&d),
-            RawDataWord::Word16(d) => self.instruction_from_array_ptr(&d),
+            RawDataWord::Word64(d) => self.instruction_from_array_ptr(&d, state),
+            RawDataWord::Word32(d) => self.instruction_from_array_ptr(&d, state),
+            RawDataWord::Word16(d) => self.instruction_from_array_ptr(&d, state),
             RawDataWord::Word8(_) => todo!(),
         }
     }
 
-    fn instruction_from_array_ptr(&self, data: &[u8]) -> Result<Instruction> {
-        match self.architecture {
-            object::Architecture::Arm => {
-                // probobly right add more cheks later or custom enum etc.
-                let arm_instruction = parse(data).unwrap();
-                debug!("instruction read: {:?}", arm_instruction);
-                Ok(arm_instruction.translate())
-            }
-            _ => todo!(),
-        }
+    fn instruction_from_array_ptr(&self, data: &[u8], state: &GAState) -> Result<Instruction> {
+        Ok(self.architecture.translate(data, state)?)
     }
 
     /// Get a byte of data from program memory.

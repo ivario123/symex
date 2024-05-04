@@ -1,21 +1,19 @@
 //! Hooks
-//!
-use llvm_ir::Value;
 use std::collections::HashMap;
+
+use llvm_ir::Value;
 use tracing::{debug, trace};
 
+use super::PathResult;
 // These should be moved out of LLVM and be made general purpose enough to be used for any
 // executor.
 //
 // This would require a general purpose project as well though.
-
 use crate::{
     memory::BITS_IN_BYTE,
     util::{ExpressionType, Variable},
     vm::{executor::LLVMExecutor, AnalysisError, LLVMExecutorError},
 };
-
-use super::PathResult;
 
 /// Hook type
 pub type Hook = fn(&mut LLVMExecutor<'_>, &[Value]) -> Result<PathResult, LLVMExecutorError>;
@@ -138,14 +136,15 @@ pub fn symbolic(
     let addr = &args[0];
 
     if addr.ty().is_pointer() {
-        // TODO: We need the size of the pointed to value, which we cannot easily get with
-        // opaque pointers.
+        // TODO: We need the size of the pointed to value, which we cannot easily get
+        // with opaque pointers.
         let addr_expr = vm.state.get_expr(addr)?;
         let size = {
             // HACK:
-            // Read the pointed to object from memory and get the size from there, not entirely
-            // sure this works for all cases... Since, I think we may sometimes only want
-            // part of the memory object to be reset to entirely symbolic.
+            // Read the pointed to object from memory and get the size from there, not
+            // entirely sure this works for all cases... Since, I think we may
+            // sometimes only want part of the memory object to be reset to
+            // entirely symbolic.
             let addr = addr_expr.get_constant().expect("expected constant addr");
             let obj = vm
                 .state
@@ -184,8 +183,8 @@ fn get_operand_name(_op: &Value) -> String {
     // };
     let name = "name-todo";
 
-    // Add random number at the end, this is to give each call to symbolic a unique name. Even if
-    // its called for variables with the same name.
+    // Add random number at the end, this is to give each call to symbolic a unique
+    // name. Even if its called for variables with the same name.
     format!("{}-{}", name, rand::random::<u32>())
 }
 
@@ -239,7 +238,8 @@ fn rust_dealloc(
     Ok(PathResult::Success(None))
 }
 
-// fn __rust_realloc(ptr: *mut u8, old_size: usize, align: usize, new_size: usize) -> *mut u8;
+// fn __rust_realloc(ptr: *mut u8, old_size: usize, align: usize, new_size:
+// usize) -> *mut u8;
 fn rust_realloc(
     vm: &mut LLVMExecutor<'_>,
     args: &[Value],

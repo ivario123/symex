@@ -1,17 +1,18 @@
 use llvm_ir::{Global, GlobalValue, Value};
 use tracing::trace;
 
-use crate::{
-    smt::{DContext, DSolver},
-    util::Variable,
-    vm::bit_size,
-};
-
 use super::{
     path_selection::{DFSPathSelection, Path},
     project::Project,
     state::LLVMState,
-    LLVMExecutor, LLVMExecutorError, PathResult,
+    LLVMExecutor,
+    LLVMExecutorError,
+    PathResult,
+};
+use crate::{
+    smt::{DContext, DSolver},
+    util::Variable,
+    vm::bit_size,
 };
 
 pub struct VM {
@@ -66,8 +67,9 @@ impl VM {
     fn initialize_global_references(&self, state: &mut LLVMState) -> Result<(), LLVMExecutorError> {
         // Add functions.
         //
-        // When functions are allocated we just allocate a pointer size, this is just so we get an
-        // address. The actual bitcode instructions are never stored in symbolic memory.
+        // When functions are allocated we just allocate a pointer size, this is just so
+        // we get an address. The actual bitcode instructions are never stored
+        // in symbolic memory.
         let fn_size = self.project.ptr_size as u64;
         let fn_align = 4;
 
@@ -85,7 +87,8 @@ impl VM {
             state.global_lookup_rev.insert(address, function);
         }
 
-        // All GlobalVariable's should be pointers. Allocation size is based on the underlying type.
+        // All GlobalVariable's should be pointers. Allocation size is based on the
+        // underlying type.
         for gv in self.project.module.globals() {
             // If no specific alignment is specified, use the project default.
             let alignment = gv.alignment();

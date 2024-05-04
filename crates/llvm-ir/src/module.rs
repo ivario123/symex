@@ -92,9 +92,9 @@ impl Module {
         let mut module: MaybeUninit<LLVMModuleRef> = MaybeUninit::uninit();
         let success = unsafe {
             let ctx = LLVMContextCreate();
-            let return_code = LLVMParseBitcodeInContext2(ctx, memory_buffer, module.as_mut_ptr());
+            
             // LLVMDisposeMemoryBuffer(buffer);
-            return_code
+            LLVMParseBitcodeInContext2(ctx, memory_buffer, module.as_mut_ptr())
         };
 
         if success != 0 {
