@@ -422,9 +422,16 @@ impl Convert for (usize, V7Operation) {
                     let (rd, rn) = (rd.local_into(), rn.local_into());
                     let diff = msb - lsb;
                     assert!(msb >= lsb);
+                    let diff = match diff >0 {
+                        true => diff -1,
+                        false => 0
+                    };
                     pseudo!([
                         // Assume happy case here
-                        let mask = ((diff - 1) << lsb).local_into();
+                        let mask = (diff << lsb).local_into();
+                        if (diff == 0) {
+                            mask = 0.local_into();
+                        }
                         mask = ! mask;
                         rd = rd & mask;
                         let intermediate = rn<diff:0> << lsb.local_into();

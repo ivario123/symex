@@ -6,7 +6,7 @@ use crate::general_assembly::{instruction::CycleCount, state::GAState};
 
 pub(crate) fn cycle_count_m0plus_core(operation: &Operation) -> CycleCount {
     // SIO based on the rp2040 make this configurable later
-    let address_max_cycle_function: fn(state: &GAState) -> usize = |state| {
+    let address_max_cycle_function: fn(state: &mut GAState) -> usize = |state| {
         let address = match state.registers.get("LastAddr").unwrap().get_constant() {
             Some(v) => v,
             None => return 2,
@@ -32,7 +32,7 @@ pub(crate) fn cycle_count_m0plus_core(operation: &Operation) -> CycleCount {
         Operation::ASRImm { imm: _, m: _, d: _ } => CycleCount::Value(1),
         Operation::ASRReg { m: _, dn: _ } => CycleCount::Value(1),
         Operation::B { cond: _, imm: _ } => {
-            let max_cycle: fn(state: &GAState) -> usize = |state| {
+            let max_cycle: fn(state: &mut GAState) -> usize = |state| {
                 if state.get_has_jumped() {
                     2
                 } else {
@@ -168,7 +168,7 @@ pub(crate) fn cycle_count_m0_core(operation: &Operation) -> CycleCount {
         Operation::ASRImm { imm: _, m: _, d: _ } => CycleCount::Value(1),
         Operation::ASRReg { m: _, dn: _ } => CycleCount::Value(1),
         Operation::B { cond: _, imm: _ } => {
-            let max_cycle: fn(state: &GAState) -> usize = |state| {
+            let max_cycle: fn(state: &mut GAState) -> usize = |state| {
                 if state.get_has_jumped() {
                     3
                 } else {

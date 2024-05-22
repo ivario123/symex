@@ -1,5 +1,4 @@
 //! Simple runner that starts symbolic execution on LLVM bitcode.
-//!
 use std::time::Instant;
 
 use regex::Regex;
@@ -13,9 +12,10 @@ use crate::{
         project::PCHook,
         state::GAState,
         GAError,
+        Result as SuperResult,
         RunConfig,
     },
-    smt::DContext,
+    smt::{DContext, DExpr},
 };
 
 fn add_architecture_independent_hooks(cfg: &mut RunConfig) {
@@ -29,6 +29,7 @@ fn add_architecture_independent_hooks(cfg: &mut RunConfig) {
         state.set_register("PC".to_owned(), lr)?;
         Ok(())
     };
+
     let end_cyclecount = |state: &mut GAState| {
         // stop counting
         state.count_cycles = false;
@@ -42,6 +43,44 @@ fn add_architecture_independent_hooks(cfg: &mut RunConfig) {
         state.set_register("PC".to_owned(), lr)?;
         Ok(())
     };
+
+    let branch_update = |state: &mut GAState, value: DExpr| -> SuperResult<()> {
+        // Safe to assume that PC exists.
+        let pc = match value.get_constant() {
+            Some(val) => val,
+            None => {
+                return state.set_register_bypass_hooks("PC".to_owned(), value);
+            }
+        };
+        let old_pc = state.last_pc;
+
+        let diff = match &state.current_instruction {
+            Some(instr) => instr.instruction_size / 8,
+            None => return state.set_register_bypass_hooks("PC".to_owned(), value),
+        };
+
+        if pc > old_pc && (pc - old_pc == diff.into()) {
+            state.first_branch_occurance = false;
+            state.reset_has_jumped();
+            return state.set_register_bypass_hooks("PC".to_owned(), value);
+        }
+
+        state.set_has_jumped();
+
+        let did_not_exist = state.branch_map.insert((old_pc, pc));
+
+        if did_not_exist {
+            state.first_branch_occurance = true;
+            // println!("First time {:?} -> {:?}", old_pc, pc);
+        } else {
+            state.first_branch_occurance = false;
+        }
+        // Bypass the hooks as we would loop for ever otherwise.
+        state.set_register_bypass_hooks("PC".to_owned(), value)
+    };
+
+    cfg.register_write_hooks
+        .push(("PC".to_owned(), branch_update));
 
     // add all pc hooks
     cfg.pc_hooks.push((

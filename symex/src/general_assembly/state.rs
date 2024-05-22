@@ -1,6 +1,6 @@
 //! Holds the state in general assembly execution.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use general_assembly::{condition::Condition, operand::DataWord};
 use tracing::{debug, trace};
@@ -44,10 +44,13 @@ pub struct GAState {
     pub registers: HashMap<String, DExpr>,
     pub continue_in_instruction: Option<ContinueInsideInstruction>,
     pub current_instruction: Option<Instruction>,
+    pub first_branch_occurance: bool,
+    /// Contains all of the taken branches.
+    pub branch_map: HashSet<(u64, u64)>,
     pc_register: u64, // this register is special
     flags: HashMap<String, DExpr>,
     instruction_counter: usize,
-    has_jumped: bool,
+    pub has_jumped: bool,
     instruction_conditions: VecDeque<Condition>,
 }
 
@@ -102,6 +105,8 @@ impl GAState {
             cycle_count: 0,
             cycle_laps: vec![],
             registers,
+            branch_map: HashSet::new(),
+            first_branch_occurance: true,
             pc_register: pc_reg,
             flags,
             instruction_counter: 0,
@@ -227,6 +232,8 @@ impl GAState {
             cycle_count: 0,
             cycle_laps: vec![],
             registers,
+            branch_map: HashSet::new(),
+            first_branch_occurance: true,
             pc_register: pc_reg,
             flags,
             instruction_counter: 0,
@@ -238,6 +245,39 @@ impl GAState {
             current_instruction: None,
             instruction_conditions: VecDeque::new(),
         }
+    }
+
+    pub fn set_register_bypass_hooks(&mut self, register: String, expr: DExpr) -> Result<()> {
+        // crude solution should prbobly change
+        if register == "PC" {
+            let value = match expr.get_constant() {
+                Some(v) => {
+                    // assert!(v % 4 == 0);
+                    v
+                }
+                None => {
+                    trace!("not a concrete pc try to generate possible values");
+                    let values: Vec<u64> = match self.constraints.get_values(&expr, 500).unwrap() {
+                        crate::smt::Solutions::Exactly(v) => v
+                            .iter()
+                            .map(|n| match n.get_constant() {
+                                Some(v) => v,
+                                None => todo!("e"),
+                            })
+                            .collect(),
+                        crate::smt::Solutions::AtLeast(_v) => todo!(),
+                    };
+                    trace!("{} possible PC values", values.len());
+                    for v in values {
+                        trace!("Possible PC: {:#X}", v);
+                    }
+                    todo!("handel symbolic branch")
+                }
+            };
+            self.pc_register = value;
+        }
+        self.registers.insert(register, expr);
+        Ok(())
     }
 
     /// Set a value to a register.

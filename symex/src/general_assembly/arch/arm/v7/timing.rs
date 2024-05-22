@@ -104,18 +104,57 @@ impl super::ArmV7EM {
 
     pub fn cycle_count_m4_core(instr: &V7Operation) -> CycleCount {
         let p = 3;
-        let pipeline = |state: &GAState| match state.get_last_instruction() {
-            Some(instr) => match instr.memory_access {
-                true => 1,
-                false => 2,
-            },
-            _ => 2,
+        let pipeline = |state: &mut GAState| {
+            // let first_branch_occurance = state.first_branch_occurance;
+            // if !first_branch_occurance && state.get_has_jumped() {
+            //     return 1 + 1;
+            // }
+            let prev_instr = &state.last_instruction;
+            match state.get_last_instruction() {
+                Some(instr) => match instr.memory_access {
+                    true => 1,
+                    false => 2,
+                },
+                _ => 2,
+            }
         };
         let if_pc = |reg: Register, value: usize| {
             if reg == Register::PC {
-                return CycleCount::Value(value + p);
+                CycleCount::Function(|state: &mut GAState| {
+                    let first_branch_occurance = state.first_branch_occurance;
+                    if !first_branch_occurance {
+                        1 + 1
+                    } else {
+                        1 + 3
+                    }
+                })
+            } else {
+                CycleCount::Value(value)
             }
-            CycleCount::Value(value)
+        };
+        let branch_predict = |_value: usize| -> CycleCount {
+            let func = |state: &mut GAState| {
+                let first_branch_occurance = state.first_branch_occurance;
+                if !first_branch_occurance && state.get_has_jumped() {
+                    1 + 1
+                } else {
+                    1 + 3
+                }
+            };
+            CycleCount::Function(func)
+        };
+        let branch_predict_single_cycle_if_not_taken = || -> CycleCount {
+            let func = |state: &mut GAState| {
+                let first_branch_occurance = state.first_branch_occurance;
+                if !first_branch_occurance && state.get_has_jumped() {
+                    1 + 1
+                } else if !state.get_has_jumped() {
+                    1
+                } else {
+                    1 + 3
+                }
+            };
+            CycleCount::Function(func)
         };
         match instr {
             V7Operation::AdcImmediate(_) | V7Operation::AdcRegister(_) => CycleCount::Value(1),
@@ -128,51 +167,47 @@ impl super::ArmV7EM {
             V7Operation::AsrImmediate(_) | V7Operation::AsrRegister(_) => CycleCount::Value(1),
             V7Operation::B(b) => {
                 if b.condition != Condition::None {
-                    let counter = |state: &GAState| {
-                        // match (state.get_next_instruction(), state.get_has_jumped()) {
-                        //     (
-                        //         Ok(crate::general_assembly::state::HookOrInstruction::Instruction(
-                        //             instr,
-                        //         )),
-                        //         true,
-                        //     ) => {
-                        //         let ops = instr.operations.len();
-                        //         match (ops, instr.operations.get(0)) {
-                        //             (1, Some(Operation::Nop)) => {
-                        //                 return 2;
-                        //             }
-                        //             _ => {}
-                        //         }
-                        //     }
-                        //
-                        //     _ => {}
-                        // }
-                        //
-                        match state.get_has_jumped() {
-                            true => 1 + 3,
-                            false => 1,
-                        }
-                    };
-                    CycleCount::Function(counter)
+                    //         let counter = |state: &mut GAState| {
+                    //             // match (state.get_next_instruction(),
+                    // state.get_has_jumped()) {             //
+                    // (             //
+                    // Ok(crate::general_assembly::state::HookOrInstruction::Instruction(
+                    //             //             instr,
+                    //             //         )),
+                    //             //         true,
+                    //             //     ) => {
+                    //             //         let ops = instr.operations.len();
+                    //             //         match (ops, instr.operations.get(0)) {
+                    //             //             (1, Some(Operation::Nop)) => {
+                    //             //                 return 2;
+                    //             //             }
+                    //             //             _ => {}
+                    //             //         }
+                    //             //     }
+                    //             //
+                    //             //     _ => {}
+                    //             // }
+                    //             //
+                    //
+                    //             match state.get_has_jumped() {
+                    //                 true => 1 + 3,
+                    //                 false => 1,
+                    //             }
+                    //         };
+                    //         CycleCount::Function(branch_predict(1))
+                    branch_predict_single_cycle_if_not_taken()
                 } else {
-                    // CycleCount::Value(1 + 3)
-                    CycleCount::Value(1 + 1)
+                    branch_predict_single_cycle_if_not_taken()
                 }
             }
             V7Operation::Bfc(_) => CycleCount::Value(1),
             V7Operation::Bfi(_) => CycleCount::Value(1),
             V7Operation::BicImmediate(_) | V7Operation::BicRegister(_) => CycleCount::Value(1),
             V7Operation::Bkpt(_) => CycleCount::Value(0),
-            V7Operation::Bl(_) => CycleCount::Value(1 + 3),
-            V7Operation::Blx(_) => CycleCount::Value(1 + 3),
-            V7Operation::Bx(_) => CycleCount::Value(1 + 3),
-            V7Operation::Cbz(_) => {
-                let counter = |state: &GAState| match state.get_has_jumped() {
-                    true => 1 + 3,
-                    false => 1,
-                };
-                CycleCount::Function(counter)
-            }
+            V7Operation::Bl(_) => branch_predict(1),
+            V7Operation::Blx(_) => branch_predict(1),
+            V7Operation::Bx(_) => branch_predict(1),
+            V7Operation::Cbz(_) => branch_predict_single_cycle_if_not_taken(),
             V7Operation::Clrex(_) => CycleCount::Value(1),
             V7Operation::Clz(_) => CycleCount::Value(1),
             V7Operation::CmnImmediate(_) | V7Operation::CmnRegister(_) => CycleCount::Value(1),
@@ -186,7 +221,7 @@ impl super::ArmV7EM {
             V7Operation::Isb(_) => todo!("This requires a model of barriers"),
             // TODO! Add detection for wether this is folded or not, if it is the value here is 0
             V7Operation::It(_) => {
-                let counter = |state: &GAState| match state.get_last_instruction() {
+                let counter = |state: &mut GAState| match state.get_last_instruction() {
                     Some(instr) => match instr.instruction_size {
                         16 => 0,
                         _ => 1,
@@ -219,16 +254,37 @@ impl super::ArmV7EM {
             // TODO! Add in pre load hints
             V7Operation::LdrImmediate(el) => match (el.rt, el.rn) {
                 (_, Register::PC) => CycleCount::Value(2),
-                (Register::PC, _) => CycleCount::Value(2 + 3),
+                (Register::PC, _) => CycleCount::Function(|state: &mut GAState| {
+                    let first_branch_occurance = state.first_branch_occurance;
+                    if !first_branch_occurance && state.get_has_jumped() {
+                        2 + 1
+                    } else {
+                        2 + 3
+                    }
+                }),
                 _ => CycleCount::Function(pipeline),
             },
             V7Operation::LdrLiteral(el) => match el.rt {
-                Register::PC => CycleCount::Value(2 + 3),
+                Register::PC => CycleCount::Function(|state: &mut GAState| {
+                    let first_branch_occurance = state.first_branch_occurance;
+                    if !first_branch_occurance && state.get_has_jumped() {
+                        2 + 1
+                    } else {
+                        2 + 3
+                    }
+                }),
                 _ => CycleCount::Function(pipeline),
             },
             V7Operation::LdrRegister(el) => match (el.rt, el.rn) {
                 (Register::PC, Register::PC) => CycleCount::Value(2),
-                (Register::PC, _) => CycleCount::Value(2 + 3),
+                (Register::PC, _) => CycleCount::Function(|state: &mut GAState| {
+                    let first_branch_occurance = state.first_branch_occurance;
+                    if !first_branch_occurance && state.get_has_jumped() {
+                        2 + 1
+                    } else {
+                        2 + 3
+                    }
+                }),
                 _ => CycleCount::Function(pipeline),
             },
             V7Operation::LdrbImmediate(_)
@@ -258,14 +314,8 @@ impl super::ArmV7EM {
             V7Operation::LslImmediate(_) | V7Operation::LslRegister(_) => CycleCount::Value(1),
             V7Operation::LsrImmediate(_) | V7Operation::LsrRegister(_) => CycleCount::Value(1),
             V7Operation::Mla(_) | V7Operation::Mls(_) => CycleCount::Value(2),
-            V7Operation::MovImmediate(mov) => match mov.rd {
-                Register::PC => CycleCount::Value(1 + p),
-                _ => CycleCount::Value(1),
-            },
-            V7Operation::MovRegister(mov) => match mov.rd {
-                Register::PC => CycleCount::Value(1 + 3),
-                _ => CycleCount::Value(1),
-            },
+            V7Operation::MovImmediate(mov) => if_pc(mov.rd, 1),
+            V7Operation::MovRegister(mov) => if_pc(mov.rd, 1),
             V7Operation::Movt(_) => CycleCount::Value(1),
             V7Operation::Mrs(_) => CycleCount::Value(2),
             V7Operation::Msr(_) => CycleCount::Value(2),
@@ -281,6 +331,8 @@ impl super::ArmV7EM {
             V7Operation::PliImmediate(_) => todo!("Add in preload hints"),
             V7Operation::PliRegister(_) => todo!("Add in preload hints"),
             V7Operation::Pop(pop) => {
+                // TODO! Redo parts of symex to support branch prediction here.
+
                 // TODO! Validate this, it might be incorrect
                 // The documentation gives us
                 // POP {<reglist>, PC} => 1 + N + P
@@ -375,7 +427,14 @@ impl super::ArmV7EM {
             V7Operation::Sxtb(_) => CycleCount::Value(1),
             V7Operation::Sxtb16(_) => CycleCount::Value(1),
             V7Operation::Sxth(_) => CycleCount::Value(1),
-            V7Operation::Tb(_) => CycleCount::Value(2 + p),
+            V7Operation::Tb(_) => CycleCount::Function(|state: &mut GAState| {
+                let first_branch_occurance = state.first_branch_occurance;
+                if !first_branch_occurance && state.get_has_jumped() {
+                    2 + 1
+                } else {
+                    2 + 3
+                }
+            }),
             // TODO!  The docs do not mention any cycle count for this
             // might be incorret
             V7Operation::TeqImmediate(_) | V7Operation::TeqRegister(_) => CycleCount::Value(1),

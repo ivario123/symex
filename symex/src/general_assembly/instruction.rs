@@ -11,7 +11,7 @@ pub enum CycleCount {
     Value(usize),
 
     /// Cycle count depends on execution state
-    Function(fn(state: &GAState) -> usize),
+    Function(fn(state: &mut GAState) -> usize),
 }
 
 /// Represents a general assembly instruction.
