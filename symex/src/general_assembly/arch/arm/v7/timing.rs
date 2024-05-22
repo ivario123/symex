@@ -105,10 +105,6 @@ impl super::ArmV7EM {
     pub fn cycle_count_m4_core(instr: &V7Operation) -> CycleCount {
         println!("Running OPERATION : {:?}", instr);
         let pipeline = |state: &mut GAState| {
-            let first_branch_occurance = state.first_branch_occurance;
-            if !first_branch_occurance && state.get_has_jumped() {
-                return 1 + 1;
-            }
             match state.get_last_instruction() {
                 Some(instr) => match instr.memory_access {
                     true => 1,
