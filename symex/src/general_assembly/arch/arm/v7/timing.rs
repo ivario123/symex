@@ -103,13 +103,12 @@ impl super::ArmV7EM {
     }
 
     pub fn cycle_count_m4_core(instr: &V7Operation) -> CycleCount {
-        let p = 3;
+        println!("Running OPERATION : {:?}", instr);
         let pipeline = |state: &mut GAState| {
-            // let first_branch_occurance = state.first_branch_occurance;
-            // if !first_branch_occurance && state.get_has_jumped() {
-            //     return 1 + 1;
-            // }
-            let prev_instr = &state.last_instruction;
+            let first_branch_occurance = state.first_branch_occurance;
+            if !first_branch_occurance && state.get_has_jumped() {
+                return 1 + 1;
+            }
             match state.get_last_instruction() {
                 Some(instr) => match instr.memory_access {
                     true => 1,
@@ -167,34 +166,6 @@ impl super::ArmV7EM {
             V7Operation::AsrImmediate(_) | V7Operation::AsrRegister(_) => CycleCount::Value(1),
             V7Operation::B(b) => {
                 if b.condition != Condition::None {
-                    //         let counter = |state: &mut GAState| {
-                    //             // match (state.get_next_instruction(),
-                    // state.get_has_jumped()) {             //
-                    // (             //
-                    // Ok(crate::general_assembly::state::HookOrInstruction::Instruction(
-                    //             //             instr,
-                    //             //         )),
-                    //             //         true,
-                    //             //     ) => {
-                    //             //         let ops = instr.operations.len();
-                    //             //         match (ops, instr.operations.get(0)) {
-                    //             //             (1, Some(Operation::Nop)) => {
-                    //             //                 return 2;
-                    //             //             }
-                    //             //             _ => {}
-                    //             //         }
-                    //             //     }
-                    //             //
-                    //             //     _ => {}
-                    //             // }
-                    //             //
-                    //
-                    //             match state.get_has_jumped() {
-                    //                 true => 1 + 3,
-                    //                 false => 1,
-                    //             }
-                    //         };
-                    //         CycleCount::Function(branch_predict(1))
                     branch_predict_single_cycle_if_not_taken()
                 } else {
                     branch_predict_single_cycle_if_not_taken()
@@ -212,13 +183,14 @@ impl super::ArmV7EM {
             V7Operation::Clz(_) => CycleCount::Value(1),
             V7Operation::CmnImmediate(_) | V7Operation::CmnRegister(_) => CycleCount::Value(1),
             V7Operation::CmpImmediate(_) | V7Operation::CmpRegister(_) => CycleCount::Value(1),
+            // This is very unclear in the docs, might be 1 or 2
             V7Operation::Cps(_) => CycleCount::Value(2),
+            // This is very unclear in the docs, might be 1 or 2
             V7Operation::Dbg(_) => CycleCount::Value(1),
-            V7Operation::Dmb(_) => CycleCount::Value(1), /* todo!("This requires a model of */
-            // barriers")
-            V7Operation::Dsb(_) => todo!("This requires a model of barriers"),
+            V7Operation::Dmb(_) => todo!("DMB : This requires a model barriers"),
+            V7Operation::Dsb(_) => todo!("DSB : This requires a model of barriers"),
             V7Operation::EorImmediate(_) | V7Operation::EorRegister(_) => CycleCount::Value(1),
-            V7Operation::Isb(_) => todo!("This requires a model of barriers"),
+            V7Operation::Isb(_) => todo!("ISB : This requires a model of barriers"),
             // TODO! Add detection for wether this is folded or not, if it is the value here is 0
             V7Operation::It(_) => {
                 let counter = |state: &mut GAState| match state.get_last_instruction() {
@@ -237,7 +209,9 @@ impl super::ArmV7EM {
                 let mut count = 1 + n;
                 if pc {
                     // TODO! Model pipeline better
-                    count += 3;
+                    // These are not conditional so we should be fine to just
+                    // assume that the predictor can predict this.
+                    count += 1;
                 }
                 CycleCount::Value(count)
             }
@@ -247,7 +221,9 @@ impl super::ArmV7EM {
                 let mut count = 1 + n;
                 if pc {
                     // TODO! Model pipeline better
-                    count += 3;
+                    // These are not conditional so we should be fine to just
+                    // assume that the predictor can predict this.
+                    count += 1;
                 }
                 CycleCount::Value(count)
             }
@@ -295,7 +271,7 @@ impl super::ArmV7EM {
             V7Operation::LdrdLiteral(_) => CycleCount::Value(1 + 2),
             // TODO! This requires a model of semaphores
             V7Operation::Ldrex(_) | V7Operation::Ldrexb(_) | V7Operation::Ldrexh(_) => {
-                CycleCount::Value(2)
+                todo!("Ldrex : Requires a model of the system")
             }
             // TODO! Add in model of contigous loads to allow next load to be single cycle
             V7Operation::LdrhImmediate(_)
@@ -317,7 +293,9 @@ impl super::ArmV7EM {
             V7Operation::MovImmediate(mov) => if_pc(mov.rd, 1),
             V7Operation::MovRegister(mov) => if_pc(mov.rd, 1),
             V7Operation::Movt(_) => CycleCount::Value(1),
+            // Might be one or two.
             V7Operation::Mrs(_) => CycleCount::Value(2),
+            // Might be one or two.
             V7Operation::Msr(_) => CycleCount::Value(2),
             V7Operation::Mul(_) => CycleCount::Value(1),
             V7Operation::MvnImmediate(_) | V7Operation::MvnRegister(_) => CycleCount::Value(1),
@@ -339,8 +317,11 @@ impl super::ArmV7EM {
                 // This seems to count N as the number or registers in <reglist>
                 // if we assume this to be the case we can subtract one from P
                 // as that is the same as subtracting one from N
+
+                // This might just be 1 Since the return statement *should* allways be
+                // predictable
                 let ret = match pop.registers.registers.contains(&Register::PC) {
-                    true => p - 1,
+                    true => 1,
                     _ => 0,
                 };
                 CycleCount::Value(1 + pop.registers.registers.len() + ret)
@@ -409,9 +390,9 @@ impl super::ArmV7EM {
             V7Operation::Strbt(_) => CycleCount::Value(2),
             // N is two here
             V7Operation::StrdImmediate(_strd) => CycleCount::Value(1 + 2),
-            V7Operation::Strex(_) => CycleCount::Value(2),
-            V7Operation::Strexb(_) => CycleCount::Value(2),
-            V7Operation::Strexh(_) => CycleCount::Value(2),
+            V7Operation::Strex(_) => todo!("STREX : requires a model of the system"),
+            V7Operation::Strexb(_) => todo!("STREXB : requires a model of the system"),
+            V7Operation::Strexh(_) => todo!("STREXH : requires a model of the system"),
             V7Operation::StrhImmediate(_)
             | V7Operation::StrhRegister(_)
             | V7Operation::Strht(_)
