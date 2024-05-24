@@ -1,4 +1,4 @@
-use disarmv7::prelude::{Condition, Operation as V7Operation, Register};
+use disarmv7::prelude::{Operation as V7Operation, Register};
 
 // use general_assembly::operation::Operation;
 use crate::general_assembly::{
@@ -118,7 +118,7 @@ impl super::ArmV7EM {
         let if_pc = |reg: Register, value: usize| {
             if reg == Register::PC {
                 CycleCount::Function(|state: &mut GAState| {
-                let ext = state.as_ext::<ArmV7EMStateExt>();
+                    let ext = state.as_ext::<ArmV7EMStateExt>();
                     let first_branch_occurance = ext.first_branch_occurance;
                     if !first_branch_occurance {
                         1 + 1
@@ -165,13 +165,7 @@ impl super::ArmV7EM {
             V7Operation::Adr(_) => CycleCount::Value(1),
             V7Operation::AndImmediate(_) | V7Operation::AndRegister(_) => CycleCount::Value(1),
             V7Operation::AsrImmediate(_) | V7Operation::AsrRegister(_) => CycleCount::Value(1),
-            V7Operation::B(b) => {
-                if b.condition != Condition::None {
-                    branch_predict_single_cycle_if_not_taken()
-                } else {
-                    branch_predict_single_cycle_if_not_taken()
-                }
-            }
+            V7Operation::B(_b) => branch_predict_single_cycle_if_not_taken(),
             V7Operation::Bfc(_) => CycleCount::Value(1),
             V7Operation::Bfi(_) => CycleCount::Value(1),
             V7Operation::BicImmediate(_) | V7Operation::BicRegister(_) => CycleCount::Value(1),
@@ -413,8 +407,10 @@ impl super::ArmV7EM {
             V7Operation::Sxtb16(_) => CycleCount::Value(1),
             V7Operation::Sxth(_) => CycleCount::Value(1),
             V7Operation::Tb(_) => CycleCount::Function(|state: &mut GAState| {
-                let first_branch_occurance = state.first_branch_occurance;
-                if !first_branch_occurance && state.get_has_jumped() {
+                let ext = state.as_ext::<ArmV7EMStateExt>();
+
+                let first_branch_occurance = ext.first_branch_occurance;
+                if !first_branch_occurance && ext.has_jumped {
                     2 + 1
                 } else {
                     2 + 3

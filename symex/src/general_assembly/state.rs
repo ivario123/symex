@@ -1,6 +1,6 @@
 //! Holds the state in general assembly execution.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
 use general_assembly::{condition::Condition, operand::DataWord};
 use tracing::{debug, trace};
@@ -44,15 +44,14 @@ pub struct GAState {
     pub registers: HashMap<String, DExpr>,
     pub continue_in_instruction: Option<ContinueInsideInstruction>,
     pub current_instruction: Option<Instruction>,
-    pub first_branch_occurance: bool,
-    /// Contains all of the taken branches.
-    pub branch_map: HashSet<(u64, u64)>,
+    /// The extensions added by the current project
+    /// [`Arch`](crate::general_assembly::arch::Arch).
+    pub extension: Box<dyn ArchStateExtension>,
     pc_register: u64, // this register is special
     flags: HashMap<String, DExpr>,
     instruction_counter: usize,
     pub has_jumped: bool,
     instruction_conditions: VecDeque<Condition>,
-    pub extension: Box<dyn ArchStateExtension>,
 }
 
 impl GAState {
@@ -106,8 +105,6 @@ impl GAState {
             cycle_count: 0,
             cycle_laps: vec![],
             registers,
-            branch_map: HashSet::new(),
-            first_branch_occurance: true,
             pc_register: pc_reg,
             flags,
             instruction_counter: 0,
@@ -236,8 +233,6 @@ impl GAState {
             cycle_count: 0,
             cycle_laps: vec![],
             registers,
-            branch_map: HashSet::new(),
-            first_branch_occurance: true,
             pc_register: pc_reg,
             flags,
             instruction_counter: 0,
@@ -471,8 +466,16 @@ impl GAState {
         }
     }
 
+    /// Returns the [`Arch`](crate::general_assembly::arch::Arch) specific
+    /// [`ArchStateExtension`].
+    ///
+    /// # Panic
+    ///
+    /// This function panics if the requested extension does not match the
+    /// expected extension. This only happens if the architecture is
+    /// misconfigured.
     pub fn as_ext<E: ArchStateExtension + 'static>(&mut self) -> &mut E {
-        match (&mut *self.extension).as_any().downcast_mut::<E>() {
+        match (*self.extension).as_any().downcast_mut::<E>() {
             Some(value) => value,
             None => panic!("Somehow the state and the executor have different architectures"),
         }
