@@ -44,9 +44,11 @@ pub struct GAState {
     pub registers: HashMap<String, DExpr>,
     pub continue_in_instruction: Option<ContinueInsideInstruction>,
     pub current_instruction: Option<Instruction>,
+
     /// The extensions added by the current project
     /// [`Arch`](crate::general_assembly::arch::Arch).
-    pub extension: Box<dyn ArchStateExtension>,
+    extension: Box<dyn ArchStateExtension>,
+
     pc_register: u64, // this register is special
     flags: HashMap<String, DExpr>,
     instruction_counter: usize,
@@ -409,7 +411,7 @@ impl GAState {
     }
 
     /// Get the next instruction based on the address in the PC register.
-    pub fn get_next_instruction(&self) -> Result<HookOrInstruction> {
+    pub fn get_next_instruction(&mut self) -> Result<HookOrInstruction> {
         let pc = self.pc_register & !(0b1); // Not applicable for all architectures TODO: Fix this.;
         match self.project.get_pc_hook(pc) {
             Some(hook) => Ok(HookOrInstruction::PcHook(hook)),
@@ -469,7 +471,7 @@ impl GAState {
     /// Returns the [`Arch`](crate::general_assembly::arch::Arch) specific
     /// [`ArchStateExtension`].
     ///
-    /// # Panic
+    /// ## Panic
     ///
     /// This function panics if the requested extension does not match the
     /// expected extension. This only happens if the architecture is

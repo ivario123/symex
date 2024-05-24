@@ -30,11 +30,16 @@ pub mod timing;
 pub struct ArmV7EM {}
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ArmV7EMStateExt {
     has_jumped: bool,
     first_branch_occurance: bool,
     branch_map: HashSet<(u64, u64)>,
+    prev_cycle_latch: usize,
+    pred_horizon: usize,
+    prev_instr: Option<V7Operation>,
 }
+
 impl Display for ArmV7EMStateExt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ArmV7EM state extensions")
@@ -47,12 +52,28 @@ impl ArchStateExtension for ArmV7EMStateExt {
     }
 }
 
+impl ArmV7EMStateExt {
+    pub fn set_is_predictable(&mut self, pred: bool) {
+        self.pred_horizon = match pred {
+            true => (self.pred_horizon + 1).min(1),
+            false => 0,
+        };
+    }
+
+    pub fn get_p(&self) -> usize {
+        3 - self.pred_horizon
+    }
+}
+
 impl Arch for ArmV7EM {
     fn ext(&self) -> Box<dyn ArchStateExtension> {
         Box::new(ArmV7EMStateExt {
             has_jumped: false,
             first_branch_occurance: false,
             branch_map: HashSet::new(),
+            prev_cycle_latch: 0,
+            pred_horizon: 0,
+            prev_instr: None,
         })
     }
 
@@ -118,6 +139,7 @@ impl Arch for ArmV7EM {
             Regex::new(r"^symbolic_size<.+>$").unwrap(),
             PCHook::Intrinsic(symbolic_sized),
         ));
+
         // §B1.4 Specifies that R[15] => Addr(Current instruction) + 4
         //
         // This can be translated in to
@@ -167,11 +189,11 @@ impl Arch for ArmV7EM {
             .push((MemoryHookAddress::Single(0x4000c008), read_reset_done));
     }
 
-    fn translate(&self, buff: &[u8], state: &GAState) -> Result<Instruction, ArchError> {
+    fn translate(&self, buff: &[u8], state: &mut GAState) -> Result<Instruction, ArchError> {
         let mut buff: disarmv7::buffer::PeekableBuffer<u8, _> = buff.iter().cloned().into();
 
         let instr = V7Operation::parse(&mut buff).map_err(|e| ArchError::ParsingError(e.into()))?;
-        let timing = Self::cycle_count_m4_core(&instr.1);
+        let timing = Self::cycle_count_m4_core(&instr.1, state);
         let ops: Vec<Operation> = instr.clone().convert(state.get_in_conditional_block());
 
         Ok(Instruction {

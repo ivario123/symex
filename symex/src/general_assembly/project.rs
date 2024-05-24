@@ -383,7 +383,7 @@ impl Project {
     }
 
     /// Get the instruction att a address
-    pub fn get_instruction(&self, address: u64, state: &GAState) -> Result<Instruction> {
+    pub fn get_instruction(&self, address: u64, state: &mut GAState) -> Result<Instruction> {
         trace!("Reading instruction from address: {:#010X}", address);
         match self.get_raw_word(address)? {
             RawDataWord::Word64(d) => self.instruction_from_array_ptr(&d, state),
@@ -393,7 +393,7 @@ impl Project {
         }
     }
 
-    fn instruction_from_array_ptr(&self, data: &[u8], state: &GAState) -> Result<Instruction> {
+    fn instruction_from_array_ptr(&self, data: &[u8], state: &mut GAState) -> Result<Instruction> {
         Ok(self.architecture.translate(data, state)?)
     }
 

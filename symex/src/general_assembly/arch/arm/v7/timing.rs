@@ -1,4 +1,7 @@
-use disarmv7::prelude::{Operation as V7Operation, Register};
+use disarmv7::{
+    arch::Condition,
+    prelude::{Operation as V7Operation, Register},
+};
 
 // use general_assembly::operation::Operation;
 use crate::general_assembly::{
@@ -6,6 +9,7 @@ use crate::general_assembly::{
     instruction::CycleCount,
     state::GAState,
 };
+
 impl super::ArmV7EM {
     pub fn memory_access(instr: &V7Operation) -> bool {
         use V7Operation::*;
@@ -22,7 +26,6 @@ impl super::ArmV7EM {
             | LdrhLiteral(_) | LdrhRegister(_) | Ldrht(_) | LdrsbImmediate(_) | LdrsbLiteral(_)
             | LdrsbRegister(_) | Ldrsbt(_) | LdrshImmediate(_) | LdrshLiteral(_)
             | LdrshRegister(_) | Ldrsht(_) | Ldrt(_) => true,
-            /* LdcImmediate(_) | LdcLiteral(_) | */
             LslImmediate(_) | LslRegister(_) | LsrImmediate(_) | LsrRegister(_) => false,
             Mcrr(_) | Mla(_) | Mls(_) | MovImmediate(_) | MovRegister(_) | Movt(_) | Mrrc(_)
             | Mrs(_) | Msr(_) | Mul(_) | MvnImmediate(_) | MvnRegister(_) | Nop(_)
@@ -106,7 +109,233 @@ impl super::ArmV7EM {
         }
     }
 
-    pub fn cycle_count_m4_core(instr: &V7Operation) -> CycleCount {
+    pub fn trivially_predictable(instr: &V7Operation) -> bool {
+        match instr {
+            V7Operation::AdcImmediate(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::AdcRegister(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::AddImmediate(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::AddRegister(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::AddSPImmediate(add) => add.rd.unwrap_or(Register::SP) != Register::PC,
+            V7Operation::AddSPRegister(add) => add.rd.unwrap_or(Register::SP) != Register::PC,
+            V7Operation::Adr(adr) => adr.rd != Register::PC,
+            V7Operation::AndImmediate(and) => and.rd.unwrap_or(and.rn) != Register::PC,
+            V7Operation::AndRegister(and) => and.rd.unwrap_or(and.rn) != Register::PC,
+            V7Operation::AsrImmediate(asr) => asr.rd != Register::PC,
+            V7Operation::AsrRegister(asr) => asr.rd != Register::PC,
+            V7Operation::B(b) => b.condition == Condition::None,
+            V7Operation::Bfc(bf) => bf.rd != Register::PC,
+            V7Operation::Bfi(bf) => bf.rd != Register::PC,
+            V7Operation::BicImmediate(bic) => bic.rd.unwrap_or(bic.rn) != Register::PC,
+            V7Operation::BicRegister(bic) => bic.rd.unwrap_or(bic.rn) != Register::PC,
+            V7Operation::Bkpt(_) => true,
+            V7Operation::Bl(_bl) => true,
+            V7Operation::Blx(_blx) => true,
+            V7Operation::Bx(_bx) => true,
+            V7Operation::Cbz(_cbz) => false,
+            V7Operation::Cdp(_cdp) => true,
+            V7Operation::Clrex(_) => todo!(),
+            V7Operation::Clz(clz) => clz.rd != Register::PC,
+            V7Operation::CmnImmediate(_) => true,
+            V7Operation::CmnRegister(_) => true,
+            V7Operation::CmpImmediate(_) => true,
+            V7Operation::CmpRegister(_) => true,
+            V7Operation::Cps(_) => true,
+            V7Operation::Dbg(_) => true,
+            V7Operation::Dmb(_) => todo!(),
+            V7Operation::Dsb(_) => todo!(),
+            V7Operation::EorImmediate(eor) => eor.rd.unwrap_or(eor.rn) != Register::PC,
+            V7Operation::EorRegister(eor) => eor.rd.unwrap_or(eor.rn) != Register::PC,
+            V7Operation::Isb(_) => todo!(),
+            V7Operation::It(_) => false,
+            V7Operation::Ldm(ldm) => ldm.registers.registers.iter().all(|el| *el != Register::PC),
+            V7Operation::Ldmdb(ldm) => ldm.registers.registers.iter().all(|el| *el != Register::PC),
+            V7Operation::LdrImmediate(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrLiteral(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrRegister(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrbImmediate(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrbLiteral(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrbRegister(ldr) => ldr.rt != Register::PC,
+            V7Operation::Ldrbt(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrdImmediate(ldr) => ldr.rt != Register::PC && ldr.rt2 != Register::PC,
+            V7Operation::LdrdLiteral(ldr) => ldr.rt != Register::PC && ldr.rt2 != Register::PC,
+            V7Operation::Ldrex(_) => todo!(),
+            V7Operation::Ldrexb(_) => todo!(),
+            V7Operation::Ldrexh(_) => todo!(),
+            V7Operation::LdrhImmediate(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrhLiteral(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrhRegister(ldr) => ldr.rt != Register::PC,
+            V7Operation::Ldrht(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrsbImmediate(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrsbLiteral(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrsbRegister(ldr) => ldr.rt != Register::PC,
+            V7Operation::Ldrsbt(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrshImmediate(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrshLiteral(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdrshRegister(ldr) => ldr.rt != Register::PC,
+            V7Operation::Ldrsht(ldr) => ldr.rt != Register::PC,
+            V7Operation::Ldrt(ldr) => ldr.rt != Register::PC,
+            V7Operation::LdcImmediate(_) => true,
+            V7Operation::LdcLiteral(_) => true,
+            V7Operation::LslImmediate(lsl) => lsl.rd != Register::PC,
+            V7Operation::LslRegister(lsl) => lsl.rd != Register::PC,
+            V7Operation::LsrImmediate(lsr) => lsr.rd != Register::PC,
+            V7Operation::LsrRegister(lsr) => lsr.rd != Register::PC,
+            V7Operation::Mcrr(_) => todo!(),
+            V7Operation::Mcr(_) => todo!(),
+            V7Operation::Mla(mla) => mla.rd != Register::PC,
+            V7Operation::Mls(mls) => mls.rd != Register::PC,
+            V7Operation::MovImmediate(mv) => mv.rd != Register::PC,
+            V7Operation::MovRegister(mv) => mv.rd != Register::PC,
+            V7Operation::Movt(mv) => mv.rd != Register::PC,
+            V7Operation::Mrrc(_) => todo!(),
+            V7Operation::Mrc(_) => todo!(),
+            V7Operation::Mrs(_) => todo!(),
+            V7Operation::Msr(_) => todo!(),
+            V7Operation::Mul(mul) => mul.rd.unwrap_or(mul.rn) != Register::PC,
+            V7Operation::MvnImmediate(mv) => mv.rd != Register::PC,
+            V7Operation::MvnRegister(mv) => mv.rd != Register::PC,
+            V7Operation::Nop(_) => true,
+            V7Operation::OrnImmediate(or) => or.rd.unwrap_or(or.rn) != Register::PC,
+            V7Operation::OrnRegister(or) => or.rd.unwrap_or(or.rn) != Register::PC,
+            V7Operation::OrrImmediate(or) => or.rd.unwrap_or(or.rn) != Register::PC,
+            V7Operation::OrrRegister(or) => or.rd.unwrap_or(or.rn) != Register::PC,
+            V7Operation::Pkh(pkh) => pkh.rd.unwrap_or(pkh.rn) != Register::PC,
+            V7Operation::PldImmediate(_) => todo!(),
+            V7Operation::PldLiteral(_) => todo!(),
+            V7Operation::PldRegister(_) => todo!(),
+            V7Operation::PliImmediate(_) => todo!(),
+            V7Operation::PliRegister(_) => todo!(),
+            V7Operation::Pop(pop) => !pop.registers.registers.contains(&Register::PC),
+            V7Operation::Push(_) => true,
+            V7Operation::Qadd(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qadd16(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qadd8(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qasx(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qdadd(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qdsub(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qsax(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qsub(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qsub16(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Qsub8(add) => add.rd.unwrap_or(add.rn) != Register::PC,
+            V7Operation::Rbit(r) => r.rd != Register::PC,
+            V7Operation::Rev(r) => r.rd != Register::PC,
+            V7Operation::Rev16(r) => r.rd != Register::PC,
+            V7Operation::Revsh(r) => r.rd != Register::PC,
+            V7Operation::RorImmediate(r) => r.rd != Register::PC,
+            V7Operation::RorRegister(r) => r.rd != Register::PC,
+            V7Operation::Rrx(r) => r.rd != Register::PC,
+            V7Operation::RsbImmediate(r) => r.rd.unwrap_or(r.rn) != Register::PC,
+            V7Operation::RsbRegister(r) => r.rd.unwrap_or(r.rn) != Register::PC,
+            V7Operation::Sadd16(_) => todo!(),
+            V7Operation::Sadd8(_) => todo!(),
+            V7Operation::Sasx(_) => todo!(),
+            V7Operation::SbcImmediate(_) => todo!(),
+            V7Operation::SbcRegister(_) => todo!(),
+            V7Operation::Sbfx(_) => todo!(),
+            V7Operation::Sdiv(_) => todo!(),
+            V7Operation::Sel(_) => todo!(),
+            V7Operation::Sev(_) => todo!(),
+            V7Operation::Svc(_) => todo!(),
+            V7Operation::Shadd16(_) => todo!(),
+            V7Operation::Shadd8(_) => todo!(),
+            V7Operation::Shasx(_) => todo!(),
+            V7Operation::Shsax(_) => todo!(),
+            V7Operation::Shsub16(_) => todo!(),
+            V7Operation::Shsub8(_) => todo!(),
+            V7Operation::Smla(_) => todo!(),
+            V7Operation::Smlad(_) => todo!(),
+            V7Operation::Smlal(_) => todo!(),
+            V7Operation::SmlalSelective(_) => todo!(),
+            V7Operation::Smlald(_) => todo!(),
+            V7Operation::Smlaw(_) => todo!(),
+            V7Operation::Smlsd(_) => todo!(),
+            V7Operation::Smlsld(_) => todo!(),
+            V7Operation::Smmla(_) => todo!(),
+            V7Operation::Smmls(_) => todo!(),
+            V7Operation::Smmul(_) => todo!(),
+            V7Operation::Smuad(_) => todo!(),
+            V7Operation::Smul(_) => todo!(),
+            V7Operation::Smull(_) => todo!(),
+            V7Operation::Smulw(_) => todo!(),
+            V7Operation::Smusd(_) => todo!(),
+            V7Operation::Ssat(_) => todo!(),
+            V7Operation::Ssat16(_) => todo!(),
+            V7Operation::Ssax(_) => todo!(),
+            V7Operation::Ssub16(_) => todo!(),
+            V7Operation::Ssub8(_) => todo!(),
+            V7Operation::Stm(_) => true,
+            V7Operation::Stmdb(_) => true,
+            V7Operation::StrImmediate(_) => true,
+            V7Operation::StrRegister(_) => true,
+            V7Operation::StrbImmediate(_) => true,
+            V7Operation::StrbRegister(_) => true,
+            V7Operation::Strbt(_) => true,
+            V7Operation::StrdImmediate(_) => true,
+            V7Operation::Strex(_) => todo!(),
+            V7Operation::Strexb(_) => todo!(),
+            V7Operation::Strexh(_) => todo!(),
+            V7Operation::StrhImmediate(_) => true,
+            V7Operation::StrhRegister(_) => true,
+            V7Operation::Strht(_) => true,
+            V7Operation::Strt(_) => true,
+            V7Operation::SubImmediate(sub) => sub.rd.unwrap_or(sub.rn) != Register::PC,
+            V7Operation::SubRegister(sub) => sub.rd.unwrap_or(sub.rn) != Register::PC,
+            V7Operation::Stc(_) => todo!(),
+            V7Operation::SubSpMinusImmediate(sub) => sub.rd.unwrap_or(Register::SP) != Register::PC,
+            V7Operation::SubSpMinusRegister(sub) => sub.rd.unwrap_or(Register::SP) != Register::PC,
+            V7Operation::Sxtab(_) => todo!(),
+            V7Operation::Sxtab16(_) => todo!(),
+            V7Operation::Sxtah(_) => todo!(),
+            V7Operation::Sxtb(_) => todo!(),
+            V7Operation::Sxtb16(_) => todo!(),
+            V7Operation::Sxth(_) => todo!(),
+            V7Operation::Tb(_) => true,
+            V7Operation::TeqImmediate(_) => true,
+            V7Operation::TeqRegister(_) => true,
+            V7Operation::TstImmediate(_) => true,
+            V7Operation::TstRegister(_) => true,
+            V7Operation::Uadd16(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uadd8(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uasx(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Ubfx(ux) => ux.rd != Register::PC,
+            V7Operation::Udf(_ux) => todo!(),
+            V7Operation::Udiv(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uhadd16(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uhadd8(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uhasx(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uhsax(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uhsub16(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uhsub8(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Umaal(ux) => ux.rdlo != Register::PC && ux.rdhi != Register::PC,
+            V7Operation::Umlal(ux) => ux.rdlo != Register::PC && ux.rdhi != Register::PC,
+            V7Operation::Umull(ux) => ux.rdlo != Register::PC && ux.rdhi != Register::PC,
+            V7Operation::Uqadd16(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uqadd8(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uqasx(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uqsax(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uqsub16(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uqsub8(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uqsad8(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Usada8(ux) => ux.rd != Register::PC,
+            V7Operation::Usad8(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Usat(ux) => ux.rd != Register::PC,
+            V7Operation::Usat16(ux) => ux.rd != Register::PC,
+            V7Operation::Usax(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Usub16(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Usub8(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uxtab(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uxtab16(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uxtah(ux) => ux.rd.unwrap_or(ux.rn) != Register::PC,
+            V7Operation::Uxtb(ux) => ux.rd != Register::PC,
+            V7Operation::Uxtb16(ux) => ux.rd.unwrap_or(ux.rm) != Register::PC,
+            V7Operation::Uxth(ux) => ux.rd != Register::PC,
+            V7Operation::Wfe(_) => todo!(),
+            V7Operation::Wfi(_) => todo!(),
+            V7Operation::Yield(_) => todo!(),
+        }
+    }
+
+    pub fn cycle_count_m4_core(instr: &V7Operation, state: &mut GAState) -> CycleCount {
         println!("Running OPERATION : {:?}", instr);
         let pipeline = |state: &mut GAState| match state.get_last_instruction() {
             Some(instr) => match instr.memory_access {
@@ -123,7 +352,7 @@ impl super::ArmV7EM {
                     if !first_branch_occurance {
                         1 + 1
                     } else {
-                        1 + 3
+                        1 + ext.get_p()
                     }
                 })
             } else {
@@ -137,7 +366,7 @@ impl super::ArmV7EM {
                 if !first_branch_occurance && ext.has_jumped {
                     1 + 1
                 } else {
-                    1 + 3
+                    1 + ext.get_p()
                 }
             };
             CycleCount::Function(func)
@@ -148,15 +377,15 @@ impl super::ArmV7EM {
                 let first_branch_occurance = ext.first_branch_occurance;
                 if !first_branch_occurance && ext.has_jumped {
                     1 + 1
-                } else if !state.get_has_jumped() {
+                } else if !ext.has_jumped {
                     1
                 } else {
-                    1 + 3
+                    1 + ext.get_p()
                 }
             };
             CycleCount::Function(func)
         };
-        match instr {
+        let ret = match instr {
             V7Operation::AdcImmediate(_) | V7Operation::AdcRegister(_) => CycleCount::Value(1),
             V7Operation::AddImmediate(add) => if_pc(add.rd.unwrap_or(add.rn), 1),
             V7Operation::AddRegister(add) => if_pc(add.rd.unwrap_or(add.rn), 1),
@@ -224,16 +453,16 @@ impl super::ArmV7EM {
             }
             // TODO! Add in pre load hints
             V7Operation::LdrImmediate(el) => match (el.rt, el.rn) {
-                (_, Register::PC) => CycleCount::Value(2),
                 (Register::PC, _) => CycleCount::Function(|state: &mut GAState| {
                     let ext = state.as_ext::<ArmV7EMStateExt>();
                     let first_branch_occurance = ext.first_branch_occurance;
                     if !first_branch_occurance && ext.has_jumped {
                         2 + 1
                     } else {
-                        2 + 3
+                        2 + ext.get_p()
                     }
                 }),
+                (_, Register::PC) => CycleCount::Value(2),
                 _ => CycleCount::Function(pipeline),
             },
             V7Operation::LdrLiteral(el) => match el.rt {
@@ -243,7 +472,7 @@ impl super::ArmV7EM {
                     if !first_branch_occurance && ext.has_jumped {
                         2 + 1
                     } else {
-                        2 + 3
+                        2 + ext.get_p()
                     }
                 }),
                 _ => CycleCount::Function(pipeline),
@@ -256,7 +485,7 @@ impl super::ArmV7EM {
                     if !first_branch_occurance && ext.has_jumped {
                         2 + 1
                     } else {
-                        2 + 3
+                        2 + ext.get_p()
                     }
                 }),
                 _ => CycleCount::Function(pipeline),
@@ -413,7 +642,7 @@ impl super::ArmV7EM {
                 if !first_branch_occurance && ext.has_jumped {
                     2 + 1
                 } else {
-                    2 + 3
+                    2 + ext.get_p()
                 }
             }),
             // TODO!  The docs do not mention any cycle count for this
@@ -469,6 +698,15 @@ impl super::ArmV7EM {
             | V7Operation::Cdp(_)
             | V7Operation::LdcImmediate(_)
             | V7Operation::LdcLiteral(_) => todo!(),
+        };
+        {
+            let ex = state.as_ext::<ArmV7EMStateExt>();
+            if let Some(prev_instr) = ex.prev_instr.take() {
+                let is_pred = Self::trivially_predictable(&prev_instr);
+                ex.set_is_predictable(is_pred);
+            }
+            ex.prev_instr = Some(instr.clone());
         }
+        ret
     }
 }

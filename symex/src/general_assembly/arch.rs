@@ -93,7 +93,7 @@ pub trait Arch: Debug + Display + DynClone {
     }
 
     /// Converts a slice of bytes to an [`Instruction`]
-    fn translate(&self, buff: &[u8], state: &GAState) -> Result<Instruction, ArchError>;
+    fn translate(&self, buff: &[u8], state: &mut GAState) -> Result<Instruction, ArchError>;
 
     /// Adds the architecture specific hooks to the [`RunConfig`]
     fn add_hooks(&self, cfg: &mut RunConfig);
