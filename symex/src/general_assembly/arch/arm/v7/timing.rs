@@ -1,7 +1,11 @@
 use disarmv7::prelude::{Condition, Operation as V7Operation, Register};
 
 // use general_assembly::operation::Operation;
-use crate::general_assembly::{instruction::CycleCount, state::GAState};
+use crate::general_assembly::{
+    arch::arm::v7::ArmV7EMStateExt,
+    instruction::CycleCount,
+    state::GAState,
+};
 impl super::ArmV7EM {
     pub fn memory_access(instr: &V7Operation) -> bool {
         use V7Operation::*;
@@ -104,19 +108,18 @@ impl super::ArmV7EM {
 
     pub fn cycle_count_m4_core(instr: &V7Operation) -> CycleCount {
         println!("Running OPERATION : {:?}", instr);
-        let pipeline = |state: &mut GAState| {
-            match state.get_last_instruction() {
-                Some(instr) => match instr.memory_access {
-                    true => 1,
-                    false => 2,
-                },
-                _ => 2,
-            }
+        let pipeline = |state: &mut GAState| match state.get_last_instruction() {
+            Some(instr) => match instr.memory_access {
+                true => 1,
+                false => 2,
+            },
+            _ => 2,
         };
         let if_pc = |reg: Register, value: usize| {
             if reg == Register::PC {
                 CycleCount::Function(|state: &mut GAState| {
-                    let first_branch_occurance = state.first_branch_occurance;
+                let ext = state.as_ext::<ArmV7EMStateExt>();
+                    let first_branch_occurance = ext.first_branch_occurance;
                     if !first_branch_occurance {
                         1 + 1
                     } else {
@@ -129,8 +132,9 @@ impl super::ArmV7EM {
         };
         let branch_predict = |_value: usize| -> CycleCount {
             let func = |state: &mut GAState| {
-                let first_branch_occurance = state.first_branch_occurance;
-                if !first_branch_occurance && state.get_has_jumped() {
+                let ext = state.as_ext::<ArmV7EMStateExt>();
+                let first_branch_occurance = ext.first_branch_occurance;
+                if !first_branch_occurance && ext.has_jumped {
                     1 + 1
                 } else {
                     1 + 3
@@ -140,8 +144,9 @@ impl super::ArmV7EM {
         };
         let branch_predict_single_cycle_if_not_taken = || -> CycleCount {
             let func = |state: &mut GAState| {
-                let first_branch_occurance = state.first_branch_occurance;
-                if !first_branch_occurance && state.get_has_jumped() {
+                let ext = state.as_ext::<ArmV7EMStateExt>();
+                let first_branch_occurance = ext.first_branch_occurance;
+                if !first_branch_occurance && ext.has_jumped {
                     1 + 1
                 } else if !state.get_has_jumped() {
                     1
@@ -227,8 +232,9 @@ impl super::ArmV7EM {
             V7Operation::LdrImmediate(el) => match (el.rt, el.rn) {
                 (_, Register::PC) => CycleCount::Value(2),
                 (Register::PC, _) => CycleCount::Function(|state: &mut GAState| {
-                    let first_branch_occurance = state.first_branch_occurance;
-                    if !first_branch_occurance && state.get_has_jumped() {
+                    let ext = state.as_ext::<ArmV7EMStateExt>();
+                    let first_branch_occurance = ext.first_branch_occurance;
+                    if !first_branch_occurance && ext.has_jumped {
                         2 + 1
                     } else {
                         2 + 3
@@ -238,8 +244,9 @@ impl super::ArmV7EM {
             },
             V7Operation::LdrLiteral(el) => match el.rt {
                 Register::PC => CycleCount::Function(|state: &mut GAState| {
-                    let first_branch_occurance = state.first_branch_occurance;
-                    if !first_branch_occurance && state.get_has_jumped() {
+                    let ext = state.as_ext::<ArmV7EMStateExt>();
+                    let first_branch_occurance = ext.first_branch_occurance;
+                    if !first_branch_occurance && ext.has_jumped {
                         2 + 1
                     } else {
                         2 + 3
@@ -250,8 +257,9 @@ impl super::ArmV7EM {
             V7Operation::LdrRegister(el) => match (el.rt, el.rn) {
                 (Register::PC, Register::PC) => CycleCount::Value(2),
                 (Register::PC, _) => CycleCount::Function(|state: &mut GAState| {
-                    let first_branch_occurance = state.first_branch_occurance;
-                    if !first_branch_occurance && state.get_has_jumped() {
+                    let ext = state.as_ext::<ArmV7EMStateExt>();
+                    let first_branch_occurance = ext.first_branch_occurance;
+                    if !first_branch_occurance && ext.has_jumped {
                         2 + 1
                     } else {
                         2 + 3

@@ -93,7 +93,8 @@ pub struct Project {
     range_memory_read_hooks: RangeMemoryReadHooks,
     single_memory_write_hooks: SingleMemoryWriteHooks,
     range_memory_write_hooks: RangeMemoryWriteHooks,
-    architecture: Box<dyn Arch>,
+    /// The architecture for the current [`Project`].
+    pub architecture: Box<dyn Arch>,
 }
 
 fn construct_register_read_hooks(hooks: Vec<(String, RegisterReadHook)>) -> RegisterReadHooks {
@@ -155,13 +156,13 @@ fn construct_memory_read_hooks(
 }
 
 impl Project {
-    pub fn manual_project<A: Arch + 'static>(
+    pub fn manual_project(
         program_memory: Vec<u8>,
         start_addr: u64,
         end_addr: u64,
         word_size: WordSize,
         endianness: Endianness,
-        architecture: A,
+        architecture: Box<dyn Arch>,
         symtab: HashMap<String, u64>,
         pc_hooks: PCHooks,
         reg_read_hooks: RegisterReadHooks,
@@ -175,7 +176,7 @@ impl Project {
             segments: Segments::from_single_segment(program_memory, start_addr, end_addr),
             word_size,
             endianness,
-            architecture: Box::new(architecture),
+            architecture,
             symtab,
             pc_hooks,
             reg_read_hooks,

@@ -22,7 +22,7 @@ use crate::{
 
 /// Type level denotation for the
 /// [Armv6-M](https://developer.arm.com/documentation/ddi0419/latest/) ISA.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ArmV6M {}
 
 impl Arch for ArmV6M {
@@ -78,6 +78,10 @@ impl Arch for ArmV6M {
         let ret = armv6_m_instruction_parser::parse(buff).map_err(map_err)?;
         let to_exec = Self::expand(ret);
         Ok(to_exec)
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
     }
 }
 

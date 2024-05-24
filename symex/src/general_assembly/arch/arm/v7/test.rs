@@ -149,7 +149,7 @@ fn setup_test_vm() -> VM {
         0,
         WordSize::Bit32,
         Endianness::Little,
-        ArmV7EM {},
+        Box::new(ArmV7EM {}),
         HashMap::new(),
         HashMap::new(),
         HashMap::new(),

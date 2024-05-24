@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use general_assembly::{condition::Condition, operand::DataWord};
 use tracing::{debug, trace};
 
-use super::{instruction::Instruction, project::Project};
+use super::{arch::ArchStateExtension, instruction::Instruction, project::Project};
 use crate::{
     elf_util::{ExpressionType, Variable},
     general_assembly::{
@@ -52,6 +52,7 @@ pub struct GAState {
     instruction_counter: usize,
     pub has_jumped: bool,
     instruction_conditions: VecDeque<Condition>,
+    pub extension: Box<dyn ArchStateExtension>,
 }
 
 impl GAState {
@@ -117,6 +118,8 @@ impl GAState {
             continue_in_instruction: None,
             current_instruction: None,
             instruction_conditions: VecDeque::new(),
+            // TODO! Manage this, there is something really wonky here.
+            extension: project.architecture.ext(),
         })
     }
 
@@ -223,6 +226,7 @@ impl GAState {
         flags.insert("C".to_owned(), ctx.unconstrained(1, "flags.C"));
         flags.insert("V".to_owned(), ctx.unconstrained(1, "flags.V"));
 
+        let extension = project.architecture.ext();
         GAState {
             project,
             ctx,
@@ -244,6 +248,7 @@ impl GAState {
             continue_in_instruction: None,
             current_instruction: None,
             instruction_conditions: VecDeque::new(),
+            extension,
         }
     }
 
@@ -463,6 +468,13 @@ impl GAState {
 
             // For non constant addresses always read non_static memory
             None => self.write_word_from_memory_no_static(address, value),
+        }
+    }
+
+    pub fn as_ext<E: ArchStateExtension + 'static>(&mut self) -> &mut E {
+        match (&mut *self.extension).as_any().downcast_mut::<E>() {
+            Some(value) => value,
+            None => panic!("Somehow the state and the executor have different architectures"),
         }
     }
 }

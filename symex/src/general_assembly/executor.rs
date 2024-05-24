@@ -1117,7 +1117,7 @@ mod test {
             0,
             WordSize::Bit32,
             Endianness::Little,
-            ArmV6M {},
+            Box::new(ArmV6M {}),
             HashMap::new(),
             HashMap::new(),
             HashMap::new(),

@@ -7,8 +7,12 @@
 //! architecture specific hooks.
 
 pub mod arm;
-use std::fmt::{Debug, Display};
+use std::{
+    any::Any,
+    fmt::{Debug, Display},
+};
 
+use dyn_clone::DynClone;
 use object::File;
 use thiserror::Error;
 
@@ -74,17 +78,31 @@ pub enum ParseError {
     Generic(&'static str),
 }
 
+pub trait ArchStateExtension: Debug + DynClone {
+    fn as_any(&mut self) -> &mut dyn Any;
+}
+
 /// A generic architecture
 ///
 /// Denotes that the implementer can be treated as an architecture in this
 /// crate.
-pub trait Arch: Debug + Display {
+pub trait Arch: Debug + Display + DynClone {
+    /// Gets a new set of architecture state extesions.
+    fn ext(&self) -> Box<dyn ArchStateExtension> {
+        Box::new(())
+    }
+
     /// Converts a slice of bytes to an [`Instruction`]
     fn translate(&self, buff: &[u8], state: &GAState) -> Result<Instruction, ArchError>;
 
     /// Adds the architecture specific hooks to the [`RunConfig`]
     fn add_hooks(&self, cfg: &mut RunConfig);
+
+    fn as_any(&mut self) -> &mut dyn Any;
 }
+
+dyn_clone::clone_trait_object!(ArchStateExtension);
+dyn_clone::clone_trait_object!(Arch);
 
 /// A generic family of [`Architectures`](Arch).
 ///
@@ -100,4 +118,10 @@ pub trait Family: Debug {
 /// Uses dependency injection to allow usage of generic [`Family`].
 pub fn arch_from_family<F: Family>(file: &File) -> Result<Box<dyn Arch>, ArchError> {
     F::try_from(file)
+}
+
+impl ArchStateExtension for () {
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }

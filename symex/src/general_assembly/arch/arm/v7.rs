@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashSet, fmt::Display};
 
 use decoder::Convert;
 use disarmv7::prelude::{Operation as V7Operation, *};
@@ -8,12 +8,14 @@ use regex::Regex;
 use crate::{
     elf_util::{ExpressionType, Variable},
     general_assembly::{
-        arch::{Arch, ArchError, ParseError},
+        arch::{Arch, ArchError, ArchStateExtension, ParseError},
         instruction::Instruction,
         project::{MemoryHookAddress, MemoryReadHook, PCHook, RegisterReadHook, RegisterWriteHook},
         run_config::RunConfig,
         state::GAState,
+        Result as SuperResult,
     },
+    smt::DExpr,
 };
 
 #[rustfmt::skip]
@@ -24,11 +26,77 @@ pub mod test;
 pub mod timing;
 
 /// Type level denotation for the Armv7-EM ISA.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ArmV7EM {}
 
+#[derive(Debug, Clone)]
+pub struct ArmV7EMStateExt {
+    has_jumped: bool,
+    first_branch_occurance: bool,
+    branch_map: HashSet<(u64, u64)>,
+}
+impl Display for ArmV7EMStateExt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ArmV7EM state extensions")
+    }
+}
+
+impl ArchStateExtension for ArmV7EMStateExt {
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
 impl Arch for ArmV7EM {
+    fn ext(&self) -> Box<dyn ArchStateExtension> {
+        Box::new(ArmV7EMStateExt {
+            has_jumped: false,
+            first_branch_occurance: false,
+            branch_map: HashSet::new(),
+        })
+    }
+
     fn add_hooks(&self, cfg: &mut RunConfig) {
+        let branch_update = |state: &mut GAState, value: DExpr| -> SuperResult<()> {
+            // Safe to assume that PC exists.
+            let pc = match value.get_constant() {
+                Some(val) => val,
+                None => {
+                    return state.set_register_bypass_hooks("PC".to_owned(), value);
+                }
+            };
+            let old_pc = state.last_pc;
+
+            let diff = match &state.current_instruction {
+                Some(instr) => instr.instruction_size / 8,
+                None => return state.set_register_bypass_hooks("PC".to_owned(), value),
+            };
+
+            let ext = state.as_ext::<ArmV7EMStateExt>();
+
+            if pc > old_pc && (pc - old_pc == diff.into()) {
+                ext.first_branch_occurance = false;
+                ext.has_jumped = false;
+                return state.set_register_bypass_hooks("PC".to_owned(), value);
+            }
+
+            ext.has_jumped = true;
+
+            let did_not_exist = ext.branch_map.insert((old_pc, pc));
+
+            if did_not_exist {
+                ext.first_branch_occurance = true;
+                // println!("First time {:?} -> {:?}", old_pc, pc);
+            } else {
+                ext.first_branch_occurance = false;
+            }
+            // Bypass the hooks as we would loop for ever otherwise.
+            state.set_register_bypass_hooks("PC".to_owned(), value)
+        };
+
+        cfg.register_write_hooks
+            .push(("PC".to_owned(), branch_update));
+
         let symbolic_sized = |state: &mut GAState| {
             let value_ptr = state.get_register("R0".to_owned())?;
             let size = state.get_register("R1".to_owned())?.get_constant().unwrap() * 8;
@@ -112,6 +180,10 @@ impl Arch for ArmV7EM {
             max_cycle: timing,
             memory_access: Self::memory_access(&instr.1),
         })
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
     }
 }
 
